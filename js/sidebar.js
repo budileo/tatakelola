@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
-                    <span class="sidebar-text">Vitta ERP</span>
+                    <span class="sidebar-text">Tata Kelola One</span>
                 </a>
                 <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white lg:hidden">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,6 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <nav class="space-y-1 px-2" id="sidebarMenu">
                     <!-- Dynamic menu items will be injected here by sidebar.js -->
                 </nav>
+            </div>
+            
+            <div class="px-4 py-3 border-t border-dark-700 flex items-center justify-between">
+                <span class="text-gray-400 text-xs sidebar-text">Tampilkan "Kembali ke Index"</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="toggleBackToIndex" class="sr-only peer" checked>
+                    <div class="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                </label>
             </div>
             <div class="p-4 border-t border-dark-700">
                 <div class="flex items-center">
@@ -59,8 +67,37 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elRole) elRole.textContent = user.role || '-';
             if (elDept) elDept.textContent = dept ? dept.name : 'Departemen Tidak Ditemukan';
         }
+        }
+        
+        // Handle Back to Index Toggle
+        const toggleBtn = document.getElementById('toggleBackToIndex');
+        if (toggleBtn) {
+            // Load state
+            const isMenuVisible = localStorage.getItem('showBackToIndex') !== 'false';
+            toggleBtn.checked = isMenuVisible;
+            updateBackToIndexVisibility(isMenuVisible);
+
+            toggleBtn.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                localStorage.setItem('showBackToIndex', isChecked ? 'true' : 'false');
+                updateBackToIndexVisibility(isChecked);
+            });
+        }
     }
 });
+
+function updateBackToIndexVisibility(isVisible) {
+    const items = document.querySelectorAll('.back-to-index-menu');
+    items.forEach(item => {
+        if (isVisible) {
+            item.classList.remove('hidden');
+            item.classList.add('flex');
+        } else {
+            item.classList.add('hidden');
+            item.classList.remove('flex');
+        }
+    });
+}
 
 function initializeMenu() {
     const path = window.location.pathname;
@@ -105,13 +142,23 @@ function initializeMenu() {
         ];
     }
 
+    }
+
+    // Prepend "Kembali ke Index" menu
+    menuItems.unshift({
+        name: 'Kembali ke Index',
+        url: '../index.html',
+        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+        isBackToIndex: true
+    });
+
     let html = '';
     menuItems.forEach(item => {
         const isActive = path.endsWith(item.url) || (path.endsWith('/') && item.url === 'dasbor.html');
-        const activeClass = isActive ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-dark-700 hover:text-white';
+        const extraClasses = item.isBackToIndex ? 'back-to-index-menu border-b border-dark-700 mb-2 pb-2' : '';
         
         html += `
-            <a href="${item.url}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md ${activeClass} transition-colors">
+            <a href="${item.url}" class="group items-center px-2 py-2 text-sm font-medium rounded-md ${activeClass} transition-colors ${extraClasses} ${item.isBackToIndex ? 'flex' : 'flex'}">
                 <svg class="mr-3 flex-shrink-0 h-6 w-6 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path>
                 </svg>
@@ -121,6 +168,10 @@ function initializeMenu() {
     });
     
     menuContainer.innerHTML = html;
+    
+    // Apply initial visibility
+    const isMenuVisible = localStorage.getItem('showBackToIndex') !== 'false';
+    updateBackToIndexVisibility(isMenuVisible);
 }
 
 // Global function to toggle sidebar on mobile

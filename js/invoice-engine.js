@@ -67,26 +67,39 @@ const formatDate = (d) => {
 const today = () => new Date().toISOString().split('T')[0];
 const now = () => new Date().toISOString();
 
+// Fungsi untuk mendapatkan Key khusus Departemen (Isolasi Data)
+function getScopedKey(baseKey) {
+    const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+    if (activeDept && activeDept.id) {
+        return activeDept.id + '_' + baseKey;
+    }
+    return baseKey; // Fallback jika tidak ada departemen aktif
+}
+
 function getNextInvNo() {
-    let c = parseInt(localStorage.getItem(KEYS.counter) || '0') + 1;
-    localStorage.setItem(KEYS.counter, c);
+    const key = getScopedKey(KEYS.counter);
+    let c = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, c);
     const d = new Date();
     return `INV/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(c).padStart(4, '0')}`;
 }
 function getNextPayNo() {
-    let c = parseInt(localStorage.getItem(KEYS.payCounter) || '0') + 1;
-    localStorage.setItem(KEYS.payCounter, c);
+    const key = getScopedKey(KEYS.payCounter);
+    let c = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, c);
     const d = new Date();
     return `PAY/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(c).padStart(4, '0')}`;
 }
 
 // ========== STORAGE ==========
 function loadData(key, fallback) {
-    const raw = localStorage.getItem(key);
+    const scopedKey = getScopedKey(key);
+    const raw = localStorage.getItem(scopedKey);
     return raw ? JSON.parse(raw) : (fallback || []);
 }
 function saveData(key, data) {
-    localStorage.setItem(key, JSON.stringify(data));
+    const scopedKey = getScopedKey(key);
+    localStorage.setItem(scopedKey, JSON.stringify(data));
 }
 
 // ========== AUDIT LOG ==========
@@ -117,7 +130,8 @@ function createJournalEntry(date, memo, lines, refId) {
 
 // ========== INVOICE CRUD ==========
 function initInvoiceStore() {
-    if (!localStorage.getItem(KEYS.invoices)) {
+    const key = getScopedKey(KEYS.invoices);
+    if (!localStorage.getItem(key)) {
         saveData(KEYS.invoices, getDefaultInvoices());
     }
 }

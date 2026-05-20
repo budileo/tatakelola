@@ -19,6 +19,19 @@ window.checkAdminAuth = async () => {
     return user;
 };
 
+// Check and apply visibility of Kembali ke Index based on localStorage
+document.addEventListener('DOMContentLoaded', () => {
+    const isMenuVisible = localStorage.getItem('showBackToIndex') !== 'false';
+    const items = document.querySelectorAll('.back-to-index-menu-admin');
+    items.forEach(item => {
+        if (!isMenuVisible) {
+            item.style.display = 'none';
+        } else {
+            item.style.display = '';
+        }
+    });
+});
+
 window.loadDashboardStats = async () => {
     const mockUsers = JSON.parse(localStorage.getItem('vitta_mock_users')) || [];
     const pendingCount = mockUsers.filter(u => u.status === 'PENDING').length;
