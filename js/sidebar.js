@@ -209,6 +209,8 @@ window.toggleSidebar = function() {
             overlay.classList.add('hidden');
         }
     }
+};
+
 // Global function to toggle sidebar on desktop (mini/large mode)
 window.toggleDesktopSidebar = function() {
     const sidebar = document.getElementById('mainSidebar');
