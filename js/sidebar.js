@@ -1,24 +1,58 @@
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('sidebar-container');
-    if (container) {
-        // Embed the sidebar HTML directly to avoid CORS issues on file:// protocol
-        <style>
-            /* Smooth transitions for sidebar width */
-            #mainSidebar { transition: width 0.3s ease-in-out, transform 0.3s ease-in-out; }
-            #mainSidebar.sidebar-mini { width: 5rem; }
-            #mainSidebar.sidebar-mini .sidebar-text { display: none; }
-            #mainSidebar.sidebar-mini .sidebar-header { justify-content: center; padding: 1rem 0; }
-            #mainSidebar.sidebar-mini .user-info-container { flex-direction: column; text-align: center; }
-            #mainSidebar.sidebar-mini .user-initial-container { margin-right: 0; margin-bottom: 0.5rem; }
-            #mainSidebar.sidebar-mini .menu-link { justify-content: center; padding-left: 0; padding-right: 0; }
-            #mainSidebar.sidebar-mini .menu-icon { margin-right: 0; }
-            #mainSidebar.sidebar-mini #toggleDesktopSidebar { transform: rotate(180deg); }
-        </style>
+    if (!container) return;
+
+    // Inject CSS for sidebar mini mode
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+        #mainSidebar {
+            transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        #mainSidebar.sidebar-mini {
+            width: 5rem;
+        }
+        #mainSidebar.sidebar-mini .sidebar-text {
+            display: none;
+        }
+        #mainSidebar.sidebar-mini .sidebar-header {
+            justify-content: center;
+            padding: 1rem 0.5rem;
+        }
+        #mainSidebar.sidebar-mini .user-info-text {
+            display: none;
+        }
+        #mainSidebar.sidebar-mini .user-section {
+            justify-content: center;
+        }
+        #mainSidebar.sidebar-mini .user-initial-box {
+            margin-right: 0;
+        }
+        #mainSidebar.sidebar-mini .menu-link {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        #mainSidebar.sidebar-mini .menu-icon {
+            margin-right: 0;
+        }
+        #mainSidebar.sidebar-mini .toggle-section {
+            display: none;
+        }
+        #mainSidebar.sidebar-mini #btnCollapseSidebar svg {
+            transform: rotate(180deg);
+        }
+    `;
+    document.head.appendChild(styleEl);
+
+    // Build sidebar HTML
+    const sidebarHTML = `
         <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity backdrop-blur-sm cursor-pointer" onclick="toggleSidebar()"></div>
         <div class="fixed inset-y-0 left-0 z-50 w-64 bg-dark-800 border-r border-dark-700 h-screen flex flex-col transform -translate-x-full lg:relative lg:translate-x-0" id="mainSidebar">
+            
+            <!-- Header -->
             <div class="p-4 flex items-center justify-between border-b border-dark-700 sidebar-header relative">
                 <a href="../index.html" class="flex items-center space-x-2 text-white font-bold text-xl hover:text-blue-400 transition-colors">
-                    <svg class="w-8 h-8 text-blue-500 menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-8 h-8 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                     <span class="sidebar-text">Tata Kelola One</span>
@@ -29,82 +63,92 @@ document.addEventListener('DOMContentLoaded', () => {
                     </svg>
                 </button>
             </div>
-            
-            <!-- Desktop Collapse Toggle -->
-            <button onclick="toggleDesktopSidebar()" id="toggleDesktopSidebar" class="hidden lg:flex absolute -right-3 top-6 bg-dark-700 border border-dark-600 rounded-full p-1 text-gray-400 hover:text-white hover:bg-dark-600 z-50 transition-transform">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+            <!-- Collapse Button (Desktop only) -->
+            <button onclick="toggleDesktopSidebar()" id="btnCollapseSidebar" title="Kecilkan / Besarkan Menu" class="hidden lg:flex absolute -right-3 top-7 bg-dark-700 border border-dark-600 rounded-full p-1 text-gray-400 hover:text-white hover:bg-dark-600 z-[60] transition-all duration-300 cursor-pointer">
+                <svg class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
             </button>
 
+            <!-- Menu Items -->
             <div class="flex-1 overflow-y-auto py-4">
                 <nav class="space-y-1 px-2" id="sidebarMenu">
-                    <!-- Dynamic menu items will be injected here by sidebar.js -->
                 </nav>
             </div>
-            
-            <div class="px-4 py-3 border-t border-dark-700 flex flex-col items-center justify-between sidebar-text">
+
+            <!-- Toggle "Kembali ke Index" -->
+            <div class="px-4 py-3 border-t border-dark-700 toggle-section">
                 <div class="flex items-center justify-between w-full">
-                    <span class="text-gray-400 text-xs">Tampilkan "Kembali"</span>
+                    <span class="text-gray-400 text-xs sidebar-text">Tampilkan "Kembali"</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="toggleBackToIndex" class="sr-only peer" checked>
                         <div class="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
                     </label>
                 </div>
             </div>
-            <div class="p-4 border-t border-dark-700 user-info-container flex items-center justify-center">
-                <div class="flex items-center user-info-container">
-                    <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 font-bold user-initial-container" id="sidebarUserInitial">
+
+            <!-- User Info -->
+            <div class="p-4 border-t border-dark-700">
+                <div class="flex items-center user-section">
+                    <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 font-bold user-initial-box flex-shrink-0 mr-3" id="sidebarUserInitial">
                         U
                     </div>
-                    <div class="ml-3 sidebar-text text-sm text-left">
-                        <p class="text-white font-medium truncate w-32" id="sidebarUserName">User</p>
-                        <p class="text-blue-400 text-xs font-semibold truncate w-32" id="sidebarUserRole">-</p>
-                        <p class="text-gray-400 text-xs truncate w-32" id="sidebarUserDept">-</p>
+                    <div class="user-info-text text-sm text-left min-w-0">
+                        <p class="text-white font-medium truncate" id="sidebarUserName">User</p>
+                        <p class="text-blue-400 text-xs font-semibold truncate" id="sidebarUserRole">-</p>
+                        <p class="text-gray-400 text-xs truncate" id="sidebarUserDept">-</p>
                     </div>
                 </div>
             </div>
         </div>
-        `;
-        
-        container.innerHTML = sidebarHTML;
-        
-        // Initialize dynamic menu based on current path
-        initializeMenu();
+    `;
 
-        // Populate user info di sidebar dari sesi login
-        if (window.VITTA_USER) {
-            const user = window.VITTA_USER;
-            const dept = window.getVittaDept ? window.getVittaDept() : null;
-            const initial = (user.username || 'U').charAt(0).toUpperCase();
-            
-            const elInitial = document.getElementById('sidebarUserInitial');
-            const elName = document.getElementById('sidebarUserName');
-            const elRole = document.getElementById('sidebarUserRole');
-            const elDept = document.getElementById('sidebarUserDept');
+    container.innerHTML = sidebarHTML;
 
-            if (elInitial) elInitial.textContent = initial;
-            if (elName) elName.textContent = user.username || 'User';
-            if (elRole) elRole.textContent = user.role || '-';
-            if (elDept) elDept.textContent = dept ? dept.name : 'Departemen Tidak Ditemukan';
-        }
-        
-        // Handle Back to Index Toggle
-        const toggleBtn = document.getElementById('toggleBackToIndex');
-        if (toggleBtn) {
-            // Load state
-            const isMenuVisible = localStorage.getItem('showBackToIndex') !== 'false';
-            toggleBtn.checked = isMenuVisible;
-            updateBackToIndexVisibility(isMenuVisible);
+    // Initialize dynamic menu based on current path
+    initializeMenu();
 
-            toggleBtn.addEventListener('change', (e) => {
-                const isChecked = e.target.checked;
-                localStorage.setItem('showBackToIndex', isChecked ? 'true' : 'false');
-                updateBackToIndexVisibility(isChecked);
-            });
-        }
+    // Apply saved sidebar mini state
+    const savedMini = localStorage.getItem('vitta_sidebar_mini') === 'true';
+    if (savedMini) {
+        const sidebar = document.getElementById('mainSidebar');
+        if (sidebar) sidebar.classList.add('sidebar-mini');
+    }
+
+    // Populate user info from session
+    if (window.VITTA_USER) {
+        const user = window.VITTA_USER;
+        const dept = window.getVittaDept ? window.getVittaDept() : null;
+        const initial = (user.username || 'U').charAt(0).toUpperCase();
+
+        const elInitial = document.getElementById('sidebarUserInitial');
+        const elName = document.getElementById('sidebarUserName');
+        const elRole = document.getElementById('sidebarUserRole');
+        const elDept = document.getElementById('sidebarUserDept');
+
+        if (elInitial) elInitial.textContent = initial;
+        if (elName) elName.textContent = user.username || 'User';
+        if (elRole) elRole.textContent = user.role || '-';
+        if (elDept) elDept.textContent = dept ? dept.name : 'Departemen Tidak Ditemukan';
+    }
+
+    // Handle Back to Index Toggle
+    const toggleBtn = document.getElementById('toggleBackToIndex');
+    if (toggleBtn) {
+        const isMenuVisible = localStorage.getItem('showBackToIndex') !== 'false';
+        toggleBtn.checked = isMenuVisible;
+        updateBackToIndexVisibility(isMenuVisible);
+
+        toggleBtn.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            localStorage.setItem('showBackToIndex', isChecked ? 'true' : 'false');
+            updateBackToIndexVisibility(isChecked);
+        });
     }
 });
+
+// ========== Helper Functions ==========
 
 function updateBackToIndexVisibility(isVisible) {
     const items = document.querySelectorAll('.back-to-index-menu');
@@ -122,9 +166,11 @@ function updateBackToIndexVisibility(isVisible) {
 function initializeMenu() {
     const path = window.location.pathname;
     const menuContainer = document.getElementById('sidebarMenu');
+    if (!menuContainer) return;
+
     let menuItems = [];
 
-    // Define menu items for each pillar
+    // Define menu items for each module
     if (path.includes('/akuntansi/')) {
         menuItems = [
             { name: 'Dasbor', url: 'dasbor.html', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
@@ -162,7 +208,7 @@ function initializeMenu() {
         ];
     }
 
-    // Prepend "Kembali ke Index" menu
+    // Prepend "Kembali ke Index" menu item
     menuItems.unshift({
         name: 'Kembali ke Index',
         url: '../index.html',
@@ -170,48 +216,50 @@ function initializeMenu() {
         isBackToIndex: true
     });
 
+    // Render menu items
     let html = '';
     menuItems.forEach(item => {
         const isActive = path.endsWith(item.url) || (path.endsWith('/') && item.url === 'dasbor.html');
         const activeClass = isActive ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-dark-700 hover:text-white';
+        const iconColor = isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300';
         const extraClasses = item.isBackToIndex ? 'back-to-index-menu border-b border-dark-700 mb-2 pb-2' : '';
-        
+
         html += `
-            <a href="${item.url}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md ${activeClass} transition-colors ${extraClasses} menu-link relative" title="${item.name}">
-                <svg class="mr-3 flex-shrink-0 h-6 w-6 menu-icon ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <a href="${item.url}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md ${activeClass} transition-colors ${extraClasses} menu-link" title="${item.name}">
+                <svg class="flex-shrink-0 h-6 w-6 mr-3 menu-icon ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path>
                 </svg>
                 <span class="sidebar-text truncate">${item.name}</span>
             </a>
         `;
     });
-    
+
     menuContainer.innerHTML = html;
-    
-    // Apply initial visibility
+
+    // Apply initial Back to Index visibility
     const isMenuVisible = localStorage.getItem('showBackToIndex') !== 'false';
     updateBackToIndexVisibility(isMenuVisible);
 }
 
-// Global function to toggle sidebar on mobile
+// ========== Global Functions ==========
+
+// Toggle sidebar on mobile
 window.toggleSidebar = function() {
     const sidebar = document.getElementById('mainSidebar');
     const overlay = document.getElementById('sidebarOverlay');
-    
+
     if (sidebar && overlay) {
         if (sidebar.classList.contains('-translate-x-full')) {
-            // Open
             sidebar.classList.remove('-translate-x-full');
             overlay.classList.remove('hidden');
         } else {
-            // Close
             sidebar.classList.add('-translate-x-full');
             overlay.classList.add('hidden');
         }
     }
 };
 
-// Global function to toggle sidebar on desktop (mini/large mode)
+// Toggle sidebar mini/full on desktop
 window.toggleDesktopSidebar = function() {
     const sidebar = document.getElementById('mainSidebar');
     if (sidebar) {
@@ -220,14 +268,3 @@ window.toggleDesktopSidebar = function() {
         localStorage.setItem('vitta_sidebar_mini', isMini ? 'true' : 'false');
     }
 };
-
-// Apply saved sidebar state
-document.addEventListener('DOMContentLoaded', () => {
-    const isMini = localStorage.getItem('vitta_sidebar_mini') === 'true';
-    if (isMini) {
-        const sidebar = document.getElementById('mainSidebar');
-        if (sidebar) {
-            sidebar.classList.add('sidebar-mini');
-        }
-    }
-});
