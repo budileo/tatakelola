@@ -67,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elRole) elRole.textContent = user.role || '-';
             if (elDept) elDept.textContent = dept ? dept.name : 'Departemen Tidak Ditemukan';
         }
-        }
         
         // Handle Back to Index Toggle
         const toggleBtn = document.getElementById('toggleBackToIndex');
@@ -142,8 +141,6 @@ function initializeMenu() {
         ];
     }
 
-    }
-
     // Prepend "Kembali ke Index" menu
     menuItems.unshift({
         name: 'Kembali ke Index',
@@ -155,10 +152,11 @@ function initializeMenu() {
     let html = '';
     menuItems.forEach(item => {
         const isActive = path.endsWith(item.url) || (path.endsWith('/') && item.url === 'dasbor.html');
+        const activeClass = isActive ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-dark-700 hover:text-white';
         const extraClasses = item.isBackToIndex ? 'back-to-index-menu border-b border-dark-700 mb-2 pb-2' : '';
         
         html += `
-            <a href="${item.url}" class="group items-center px-2 py-2 text-sm font-medium rounded-md ${activeClass} transition-colors ${extraClasses} ${item.isBackToIndex ? 'flex' : 'flex'}">
+            <a href="${item.url}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md ${activeClass} transition-colors ${extraClasses}">
                 <svg class="mr-3 flex-shrink-0 h-6 w-6 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path>
                 </svg>
