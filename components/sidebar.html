@@ -1,0 +1,32 @@
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity backdrop-blur-sm cursor-pointer" onclick="toggleSidebar()"></div>
+<div class="fixed inset-y-0 left-0 z-50 w-64 bg-dark-800 border-r border-dark-700 h-screen flex flex-col transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out" id="mainSidebar">
+    <div class="p-4 flex items-center justify-between border-b border-dark-700">
+        <a href="../index.html" class="flex items-center space-x-2 text-white font-bold text-xl hover:text-blue-400 transition-colors">
+            <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            <span class="sidebar-text">Vitta ERP</span>
+        </a>
+        <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white lg:hidden">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+    <div class="flex-1 overflow-y-auto py-4">
+        <nav class="space-y-1 px-2" id="sidebarMenu">
+            <!-- Dynamic menu items will be injected here by sidebar.js -->
+        </nav>
+    </div>
+    <div class="p-4 border-t border-dark-700">
+        <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 font-bold">
+                U
+            </div>
+            <div class="ml-3 sidebar-text text-sm">
+                <p class="text-white font-medium">User Perusahaan</p>
+                <p class="text-gray-400 text-xs">Token: 150</p>
+            </div>
+        </div>
+    </div>
+</div>

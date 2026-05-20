@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Akuntansi - Vitta ERP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        dark: { 900: '#111827', 800: '#1f2937', 700: '#374151', 600: '#4b5563' },
+                        primary: '#3b82f6',
+                        accent: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex">
+    
+    <!-- Sidebar Placeholder -->
+    <div id="sidebar-container" class="shrink-0"></div>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-y-auto bg-dark-900">
+        <!-- Top Header -->
+        <header class="bg-dark-800 border-b border-dark-700 p-4 md:p-6 flex justify-between items-center sticky top-0 z-10">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="mr-4 text-gray-400 hover:text-white lg:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Dasbor Keuangan</h1>
+                    <p class="text-xs md:text-sm text-gray-400 hidden md:block">Ringkasan aktivitas finansial periode berjalan</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <button class="bg-dark-700 hover:bg-dark-600 text-sm px-4 py-2 rounded-lg text-gray-300 transition-colors flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    Mei 2026
+                </button>
+            </div>
+        </header>
+
+        <main class="p-6 max-w-7xl mx-auto space-y-6">
+            
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card 1: Kas & Bank -->
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5 hover:border-blue-500/50 transition-colors">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-gray-400">Total Kas & Bank</p>
+                            <h3 class="text-2xl font-bold text-white mt-1">Rp 124.500.000</h3>
+                        </div>
+                        <div class="p-2 bg-blue-500/10 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-emerald-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg> +12.5%</span>
+                        <span class="text-gray-500 ml-2">vs bulan lalu</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Piutang -->
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5 hover:border-orange-500/50 transition-colors">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-gray-400">Piutang Belum Dibayar</p>
+                            <h3 class="text-2xl font-bold text-white mt-1">Rp 32.150.000</h3>
+                        </div>
+                        <div class="p-2 bg-orange-500/10 rounded-lg">
+                            <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-rose-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg> +5.2%</span>
+                        <span class="text-gray-500 ml-2">vs bulan lalu</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Hutang -->
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5 hover:border-rose-500/50 transition-colors">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-gray-400">Hutang Usaha</p>
+                            <h3 class="text-2xl font-bold text-white mt-1">Rp 18.000.000</h3>
+                        </div>
+                        <div class="p-2 bg-rose-500/10 rounded-lg">
+                            <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-emerald-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg> -2.1%</span>
+                        <span class="text-gray-500 ml-2">vs bulan lalu</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Laba Bersih -->
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5 hover:border-emerald-500/50 transition-colors relative overflow-hidden">
+                    <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl"></div>
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <p class="text-sm font-medium text-gray-400">Laba Bersih Bulan Ini</p>
+                            <h3 class="text-2xl font-bold text-emerald-400 mt-1">Rp 45.200.000</h3>
+                        </div>
+                        <div class="p-2 bg-emerald-500/10 rounded-lg">
+                            <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Cash Flow Chart -->
+                <div class="lg:col-span-2 bg-dark-800 border border-dark-700 rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Arus Kas & Saldo</h3>
+                    <div id="cashFlowChart" class="h-72 w-full"></div>
+                </div>
+                
+                <!-- Income vs Expense Chart -->
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Pemasukan vs Pengeluaran</h3>
+                    <div id="incomeExpenseChart" class="h-72 w-full flex justify-center"></div>
+                </div>
+            </div>
+            
+            <!-- Recent Transactions Table -->
+            <div class="bg-dark-800 border border-dark-700 rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-white">Transaksi Terakhir</h3>
+                    <a href="#" class="text-blue-500 hover:text-blue-400 text-sm font-medium">Lihat Semua</a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-400">
+                        <thead class="text-xs uppercase bg-dark-700/50 text-gray-300">
+                            <tr>
+                                <th class="px-4 py-3 rounded-l-lg">Tanggal</th>
+                                <th class="px-4 py-3">Deskripsi</th>
+                                <th class="px-4 py-3">Kategori</th>
+                                <th class="px-4 py-3 text-right">Nominal</th>
+                                <th class="px-4 py-3 rounded-r-lg">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-dark-700 hover:bg-dark-700/30">
+                                <td class="px-4 py-3">18 Mei 2026</td>
+                                <td class="px-4 py-3 font-medium text-white">Invoice INV/2026/05/001 - PT ABC</td>
+                                <td class="px-4 py-3">Penjualan</td>
+                                <td class="px-4 py-3 text-right text-emerald-400">+ Rp 15.000.000</td>
+                                <td class="px-4 py-3"><span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs">Lunas</span></td>
+                            </tr>
+                            <tr class="border-b border-dark-700 hover:bg-dark-700/30">
+                                <td class="px-4 py-3">17 Mei 2026</td>
+                                <td class="px-4 py-3 font-medium text-white">Pembelian PUR/2026/05/042 - CV XYZ</td>
+                                <td class="px-4 py-3">Pembelian</td>
+                                <td class="px-4 py-3 text-right text-rose-400">- Rp 5.000.000</td>
+                                <td class="px-4 py-3"><span class="bg-orange-500/10 text-orange-400 px-2 py-1 rounded text-xs">Belum Dibayar</span></td>
+                            </tr>
+                            <tr class="hover:bg-dark-700/30">
+                                <td class="px-4 py-3">16 Mei 2026</td>
+                                <td class="px-4 py-3 font-medium text-white">Bayar Listrik & Internet</td>
+                                <td class="px-4 py-3">Biaya Operasional</td>
+                                <td class="px-4 py-3 text-right text-rose-400">- Rp 2.500.000</td>
+                                <td class="px-4 py-3"><span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs">Lunas</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ApexCharts Global Options for Dark Mode
+            const chartOptions = {
+                chart: { foreColor: '#9ca3af', toolbar: { show: false }, background: 'transparent' },
+                tooltip: { theme: 'dark' },
+                grid: { borderColor: '#374151', strokeDashArray: 4 },
+                dataLabels: { enabled: false }
+            };
+
+            // Cash Flow Chart (Area)
+            const cashFlowCtx = {
+                ...chartOptions,
+                series: [{
+                    name: 'Kas Masuk',
+                    data: [31, 40, 28, 51, 42, 109, 100]
+                }, {
+                    name: 'Kas Keluar',
+                    data: [11, 32, 45, 32, 34, 52, 41]
+                }],
+                chart: { type: 'area', height: 280, ...chartOptions.chart },
+                colors: ['#10b981', '#f43f5e'],
+                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [50, 100] } },
+                stroke: { curve: 'smooth', width: 2 },
+                xaxis: { categories: ['12 Mei', '13 Mei', '14 Mei', '15 Mei', '16 Mei', '17 Mei', '18 Mei'], axisBorder: { show: false }, axisTicks: { show: false } },
+                yaxis: { labels: { formatter: (value) => { return "Rp " + value + " Jt" } } }
+            };
+            new ApexCharts(document.querySelector("#cashFlowChart"), cashFlowCtx).render();
+
+            // Income vs Expense (Donut)
+            const incomeExpenseCtx = {
+                ...chartOptions,
+                series: [75, 25],
+                chart: { type: 'donut', height: 280, ...chartOptions.chart },
+                labels: ['Pendapatan', 'Pengeluaran'],
+                colors: ['#3b82f6', '#f43f5e'],
+                plotOptions: {
+                    pie: { donut: { size: '75%', labels: { show: true, total: { show: true, label: 'Profit', color: '#fff' } } } },
+                },
+                stroke: { show: true, colors: '#1f2937', width: 2 }
+            };
+            new ApexCharts(document.querySelector("#incomeExpenseChart"), incomeExpenseCtx).render();
+        });
+    </script>
+</body>
+</html>

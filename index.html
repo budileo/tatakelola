@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vitta ERP - Portal Utama</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#111827',
+                            800: '#1f2937',
+                            700: '#374151',
+                            600: '#4b5563',
+                        },
+                        primary: '#3b82f6',
+                        accent: '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans antialiased min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+    <!-- Decorative background elements -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+        <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px]"></div>
+        <div class="absolute -bottom-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-accent/20 blur-[120px]"></div>
+    </div>
+
+    <!-- ======== LAYAR PEMILIHAN DEPARTEMEN ======== -->
+    <div id="deptSelector" class="hidden text-center mb-12 w-full max-w-4xl px-6">
+        <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-4 tracking-tight">
+            Vitta ERP System
+        </h1>
+        <p class="text-gray-400 text-lg mb-2" id="deptSelectorGreeting">Selamat Datang</p>
+        <p class="text-gray-500 text-sm mb-8">Pilih departemen yang ingin Anda kelola sekarang:</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="deptCards">
+            <!-- Department cards will be injected by JS -->
+        </div>
+    </div>
+
+    <!-- ======== HEADER UTAMA (setelah dept dipilih) ======== -->
+    <div id="mainHeader" class="hidden text-center mb-12 animate-fade-in-down">
+        <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-4 tracking-tight">
+            Vitta ERP System
+        </h1>
+        <p class="text-gray-400 text-lg">Pilih modul untuk memulai aktivitas Anda hari ini</p>
+        <div class="mt-4 inline-flex flex-col items-center space-y-1 bg-dark-800/50 backdrop-blur-sm rounded-2xl px-6 py-3 border border-dark-700">
+            <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-sm font-semibold text-white" id="userGreeting">Memuat...</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs text-gray-400" id="userDeptInfo"></span>
+                <button onclick="switchDept()" class="text-xs text-blue-400 hover:text-blue-300 underline ml-2">Ganti Departemen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Portal Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-7xl px-6" id="portalGrid">
+        <!-- Akuntansi (Will be shown/hidden by JS) -->
+        <a href="akuntansi/dasbor.html" class="portal-card hidden group relative bg-dark-800/60 backdrop-blur-md rounded-2xl p-6 border border-dark-700 hover:border-blue-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] hover:-translate-y-1" data-module="akuntansi">
+            <div class="w-14 h-14 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">Akuntansi</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Manajemen keuangan, jurnal double-entry otomatis, invoice, dan laporan neraca.</p>
+        </a>
+
+        <!-- CRM -->
+        <a href="crm/dasbor.html" class="portal-card hidden group relative bg-dark-800/60 backdrop-blur-md rounded-2xl p-6 border border-dark-700 hover:border-purple-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] hover:-translate-y-1" data-module="crm">
+            <div class="w-14 h-14 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">CRM</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Kelola database prospek, kepuasan pelanggan, dan tiket monitoring layanan.</p>
+        </a>
+
+        <!-- HRD -->
+        <a href="hrd/dasbor.html" class="portal-card hidden group relative bg-dark-800/60 backdrop-blur-md rounded-2xl p-6 border border-dark-700 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] hover:-translate-y-1" data-module="hrd">
+            <div class="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">HRD</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Data karyawan, proses rekrutmen, KPI, dan asesmen Nine-Box Matrix.</p>
+        </a>
+
+        <!-- Operasional -->
+        <a href="operasional/dasbor.html" class="portal-card hidden group relative bg-dark-800/60 backdrop-blur-md rounded-2xl p-6 border border-dark-700 hover:border-orange-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] hover:-translate-y-1" data-module="operasional">
+            <div class="w-14 h-14 rounded-xl bg-orange-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">Operasional</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Monitoring proyek, alur persetujuan, pemberkasan, dan inventori stok.</p>
+        </a>
+
+        <!-- Administrator -->
+        <a href="administrator/index.html" class="portal-card hidden group relative bg-dark-800/60 backdrop-blur-md rounded-2xl p-6 border border-dark-700 hover:border-red-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)] hover:-translate-y-1" data-module="administrator">
+            <div class="w-14 h-14 rounded-xl bg-red-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">Administrator</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Pengaturan sistem, manajemen departemen, pengguna, dan token.</p>
+        </a>
+    </div>
+
+    <!-- Logout Button -->
+    <div class="fixed bottom-8 right-8">
+        <button onclick="handleLogout()" class="flex items-center space-x-2 px-4 py-2 bg-dark-800 hover:bg-dark-700 text-gray-300 rounded-lg border border-dark-700 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
+            <span>Keluar</span>
+        </button>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = window.VITTA_USER;
+            if (!user) return; // auth.js sudah menangani
+
+            // Elemen UI
+            const deptSelector = document.getElementById('deptSelector');
+            const mainHeader = document.getElementById('mainHeader');
+            const portalGrid = document.getElementById('portalGrid');
+            const deptCardsContainer = document.getElementById('deptCards');
+
+            // Set greeting di selector
+            document.getElementById('deptSelectorGreeting').innerText = `Selamat Datang, ${user.username} (${user.role})`;
+
+            // Ambil info departemen
+            const accessibleDepts = window.getUserDepartments ? window.getUserDepartments() : [];
+            const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+
+            if (!activeDept) {
+                // TAMPILKAN PEMILIHAN DEPARTEMEN
+                deptSelector.classList.remove('hidden');
+                mainHeader.classList.add('hidden');
+                portalGrid.classList.add('hidden');
+
+                if (accessibleDepts.length === 0) {
+                    deptCardsContainer.innerHTML = `
+                        <div class="col-span-1 md:col-span-2 bg-dark-800/80 rounded-xl p-6 border border-rose-500/50">
+                            <p class="text-white text-lg">Anda belum ditugaskan ke departemen manapun.</p>
+                            <p class="text-gray-400 text-sm mt-2">Silakan hubungi Administrator atau Owner untuk mendapatkan akses.</p>
+                        </div>
+                    `;
+                } else {
+                    deptCardsContainer.innerHTML = accessibleDepts.map(d => `
+                        <button onclick="selectDepartment('${d.id}')" class="group text-left bg-dark-800/80 hover:bg-dark-700/80 rounded-xl p-6 border border-dark-600 hover:border-blue-500/50 transition-all cursor-pointer shadow-lg hover:shadow-blue-500/10">
+                            <h3 class="text-xl font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">${d.name}</h3>
+                            <p class="text-gray-400 text-sm"><i class="fas fa-map-marker-alt w-4"></i> ${d.address || '-'}</p>
+                            <p class="text-gray-500 text-xs mt-3 bg-dark-900/50 inline-block px-2 py-1 rounded border border-dark-700">ID: ${d.id}</p>
+                        </button>
+                    `).join('');
+                }
+            } else {
+                // TAMPILKAN MODUL UTAMA (Departemen sudah dipilih)
+                deptSelector.classList.add('hidden');
+                mainHeader.classList.remove('hidden');
+                portalGrid.classList.remove('hidden');
+
+                document.getElementById('userGreeting').innerText = `Selamat Datang, ${user.username} (${user.role})`;
+                document.getElementById('userDeptInfo').innerText = `Departemen: ${activeDept.name}`;
+
+                // Konfigurasi hak akses berbasis role
+                const userPermissions = {
+                    akuntansi: true,
+                    crm: true,
+                    hrd: true,
+                    operasional: true,
+                    administrator: user.role === 'OWNER' || user.role === 'MANAGER'
+                };
+
+                const cards = document.querySelectorAll('.portal-card');
+                let index = 0;
+                cards.forEach(card => {
+                    const module = card.getAttribute('data-module');
+                    if (userPermissions[module]) {
+                        setTimeout(() => {
+                            card.classList.remove('hidden');
+                            card.classList.add('animate-fade-in-up');
+                        }, index * 100);
+                        index++;
+                    }
+                });
+            }
+        });
+
+        // Dipanggil saat kartu departemen diklik
+        window.selectDepartment = function(deptId) {
+            const depts = window.getUserDepartments();
+            const selected = depts.find(d => d.id === deptId);
+            if (selected) {
+                window.setActiveDept(selected);
+                // Reload halaman untuk merender tampilan utama
+                window.location.reload();
+            }
+        };
+
+        // Dipanggil dari tombol "Ganti Departemen"
+        window.switchDept = function() {
+            localStorage.removeItem('vitta_active_dept');
+            window.location.reload();
+        };
+
+        function handleLogout() {
+            localStorage.removeItem('vitta_user');
+            localStorage.removeItem('vitta_active_dept');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Keuangan - Vitta ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { dark: { 900: '#111827', 800: '#1f2937', 700: '#374151', 600: '#4b5563' }, primary: '#3b82f6', accent: '#8b5cf6' }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        @media print {
+            body { background: white !important; color: black !important; }
+            #sidebar-container, header, .print-hide { display: none !important; }
+            .print-area { background: white !important; padding: 0 !important; color: black !important; }
+            .print-text-dark { color: black !important; }
+            .print-border { border-color: #ddd !important; }
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex">
+    
+    <div id="sidebar-container" class="shrink-0"></div>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden bg-dark-900">
+        <!-- Header -->
+        <header class="bg-dark-800 border-b border-dark-700 p-4 md:p-6 flex justify-between items-center shrink-0 sticky top-0 z-10">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="mr-4 text-gray-400 hover:text-white lg:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Laporan Keuangan</h1>
+                    <p class="text-xs md:text-sm text-gray-400 hidden md:block">Analisis Laba Rugi dan Neraca standar</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="window.print()" class="bg-dark-700 hover:bg-dark-600 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Cetak PDF
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Scrollable Area -->
+        <main class="flex-1 overflow-y-auto p-6 print-area">
+            
+            <div class="max-w-4xl mx-auto space-y-6">
+                <!-- Controls -->
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-dark-800 p-4 rounded-xl border border-dark-700 print-hide">
+                    <div class="flex space-x-2 w-full md:w-auto">
+                        <select class="report-input w-48" onchange="toggleReport(this.value)">
+                            <option value="pl">Laba Rugi (Profit/Loss)</option>
+                            <option value="bs">Neraca (Balance Sheet)</option>
+                        </select>
+                        <input type="month" class="report-input" value="2026-05">
+                    </div>
+                    <div>
+                        <button onclick="alert('Laporan di-generate! Token dipotong 1.')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Terapkan Filter</button>
+                    </div>
+                </div>
+
+                <!-- LABA RUGI (P&L) REPORT -->
+                <div id="reportPL" class="bg-dark-800 print-border border border-dark-700 rounded-xl p-8 shadow-sm">
+                    <div class="text-center mb-8 border-b border-dark-700 print-border pb-6">
+                        <h2 class="text-2xl font-bold text-white print-text-dark">LAPORAN LABA RUGI</h2>
+                        <h3 class="text-lg text-gray-300 print-text-dark font-medium">PT PERUSAHAAN CONTOH</h3>
+                        <p class="text-sm text-gray-400 print-text-dark">Periode: 1 Mei 2026 - 31 Mei 2026</p>
+                    </div>
+                    
+                    <div class="space-y-6 text-sm">
+                        <!-- PENDAPATAN -->
+                        <div>
+                            <h4 class="font-bold text-blue-400 mb-2 uppercase tracking-wide">Pendapatan Operasional</h4>
+                            <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                <span>4-40000 Pendapatan Penjualan</span>
+                                <span>Rp 120.000.000</span>
+                            </div>
+                            <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                <span>4-40001 Pendapatan Jasa</span>
+                                <span>Rp 15.000.000</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-t border-dark-700 print-border mt-1 font-semibold text-white print-text-dark">
+                                <span>Total Pendapatan</span>
+                                <span>Rp 135.000.000</span>
+                            </div>
+                        </div>
+
+                        <!-- HPP -->
+                        <div>
+                            <h4 class="font-bold text-rose-400 mb-2 uppercase tracking-wide">Harga Pokok Penjualan (HPP)</h4>
+                            <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                <span>5-50000 HPP Barang Dagang</span>
+                                <span>Rp 60.000.000</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-t border-dark-700 print-border mt-1 font-semibold text-white print-text-dark">
+                                <span>Laba Kotor</span>
+                                <span>Rp 75.000.000</span>
+                            </div>
+                        </div>
+
+                        <!-- BEBAN OPERASIONAL -->
+                        <div>
+                            <h4 class="font-bold text-amber-400 mb-2 uppercase tracking-wide">Beban Operasional</h4>
+                            <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                <span>6-60001 Beban Gaji</span>
+                                <span>Rp 20.000.000</span>
+                            </div>
+                            <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                <span>6-60002 Beban Sewa</span>
+                                <span>Rp 5.000.000</span>
+                            </div>
+                            <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                <span>6-60003 Beban Listrik & Telepon</span>
+                                <span>Rp 2.500.000</span>
+                            </div>
+                            <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                <span>6-60100 Beban Penyusutan</span>
+                                <span>Rp 2.300.000</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-t border-dark-700 print-border mt-1 font-semibold text-white print-text-dark">
+                                <span>Total Beban Operasional</span>
+                                <span>Rp 29.800.000</span>
+                            </div>
+                        </div>
+
+                        <!-- NET PROFIT -->
+                        <div class="bg-emerald-500/10 p-4 rounded-lg mt-4 border border-emerald-500/20 print-border">
+                            <div class="flex justify-between items-center font-bold text-lg text-emerald-400 print-text-dark">
+                                <span>Laba Bersih (Net Profit)</span>
+                                <span>Rp 45.200.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NERACA (BALANCE SHEET) REPORT -->
+                <div id="reportBS" class="hidden bg-dark-800 print-border border border-dark-700 rounded-xl p-8 shadow-sm">
+                    <div class="text-center mb-8 border-b border-dark-700 print-border pb-6">
+                        <h2 class="text-2xl font-bold text-white print-text-dark">LAPORAN NERACA</h2>
+                        <h3 class="text-lg text-gray-300 print-text-dark font-medium">PT PERUSAHAAN CONTOH</h3>
+                        <p class="text-sm text-gray-400 print-text-dark">Per Tanggal: 31 Mei 2026</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 text-sm">
+                        
+                        <!-- ASET -->
+                        <div class="space-y-6">
+                            <h3 class="text-lg font-bold text-white print-text-dark border-b border-dark-700 print-border pb-2">ASET</h3>
+                            
+                            <div>
+                                <h4 class="font-semibold text-blue-400 mb-2">Aset Lancar</h4>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Kas & Bank</span>
+                                    <span>Rp 124.500.000</span>
+                                </div>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Piutang Usaha</span>
+                                    <span>Rp 32.150.000</span>
+                                </div>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Persediaan Barang</span>
+                                    <span>Rp 85.000.000</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-t border-dark-700 print-border mt-1 font-semibold text-white print-text-dark">
+                                    <span>Total Aset Lancar</span>
+                                    <span>Rp 241.650.000</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="font-semibold text-blue-400 mb-2">Aset Tetap</h4>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Kendaraan & Peralatan</span>
+                                    <span>Rp 285.000.000</span>
+                                </div>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Akumulasi Penyusutan</span>
+                                    <span class="text-rose-400">(Rp 57.000.000)</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-t border-dark-700 print-border mt-1 font-semibold text-white print-text-dark">
+                                    <span>Total Aset Tetap</span>
+                                    <span>Rp 228.000.000</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KEWAJIBAN & EKUITAS -->
+                        <div class="space-y-6">
+                            <h3 class="text-lg font-bold text-white print-text-dark border-b border-dark-700 print-border pb-2">KEWAJIBAN & EKUITAS</h3>
+                            
+                            <div>
+                                <h4 class="font-semibold text-rose-400 mb-2">Kewajiban</h4>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Hutang Usaha</span>
+                                    <span>Rp 18.000.000</span>
+                                </div>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Hutang Pajak</span>
+                                    <span>Rp 6.450.000</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-t border-dark-700 print-border mt-1 font-semibold text-white print-text-dark">
+                                    <span>Total Kewajiban</span>
+                                    <span>Rp 24.450.000</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="font-semibold text-amber-400 mb-2">Ekuitas</h4>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Modal Disetor</span>
+                                    <span>Rp 400.000.000</span>
+                                </div>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Laba Ditahan</span>
+                                    <span>Rp 0</span>
+                                </div>
+                                <div class="flex justify-between py-1 text-gray-300 print-text-dark">
+                                    <span>Laba Tahun Berjalan</span>
+                                    <span>Rp 45.200.000</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-t border-dark-700 print-border mt-1 font-semibold text-white print-text-dark">
+                                    <span>Total Ekuitas</span>
+                                    <span>Rp 445.200.000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BALANCE CHECK -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
+                        <div class="bg-blue-500/10 p-3 rounded border border-blue-500/20 print-border">
+                            <div class="flex justify-between font-bold text-blue-400 print-text-dark">
+                                <span>TOTAL ASET</span>
+                                <span>Rp 469.650.000</span>
+                            </div>
+                        </div>
+                        <div class="bg-blue-500/10 p-3 rounded border border-blue-500/20 print-border">
+                            <div class="flex justify-between font-bold text-blue-400 print-text-dark">
+                                <span>TOTAL KEWAJIBAN & EKUITAS</span>
+                                <span>Rp 469.650.000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script>
+        function toggleReport(type) {
+            if (type === 'pl') {
+                document.getElementById('reportPL').classList.remove('hidden');
+                document.getElementById('reportBS').classList.add('hidden');
+            } else {
+                document.getElementById('reportPL').classList.add('hidden');
+                document.getElementById('reportBS').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

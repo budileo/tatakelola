@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kas & Bank - Vitta ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { dark: { 900: '#111827', 800: '#1f2937', 700: '#374151', 600: '#4b5563' }, primary: '#3b82f6', accent: '#8b5cf6' }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex">
+    
+    <div id="sidebar-container" class="shrink-0"></div>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden bg-dark-900">
+        <!-- Header -->
+        <header class="bg-dark-800 border-b border-dark-700 p-4 md:p-6 flex justify-between items-center shrink-0 sticky top-0 z-10">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="mr-4 text-gray-400 hover:text-white lg:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Kas & Bank</h1>
+                    <p class="text-xs md:text-sm text-gray-400 hidden md:block">Pantau saldo rekening, transfer likuiditas, dan rekonsiliasi</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="toggleView('formTransfer')" class="bg-dark-700 hover:bg-dark-600 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    Transfer Uang
+                </button>
+                <button onclick="toggleView('formTransaction')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-emerald-500/20 flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Terima/Kirim Uang
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Scrollable Area -->
+        <main class="flex-1 overflow-y-auto p-6">
+            
+            <!-- LIST VIEW -->
+            <div id="listView" class="max-w-7xl mx-auto space-y-6">
+                
+                <!-- Account Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Bank BCA -->
+                    <div class="bg-gradient-to-br from-dark-800 to-dark-900 border border-dark-700 rounded-2xl p-6 relative overflow-hidden group hover:border-emerald-500/50 transition-all shadow-lg cursor-pointer">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full -z-10 group-hover:bg-emerald-500/10 transition-colors"></div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Bank BCA</h3>
+                                <p class="text-xs text-gray-400">1-10002</p>
+                            </div>
+                            <div class="bg-dark-700/50 p-2 rounded-lg">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                            </div>
+                        </div>
+                        <p class="text-gray-400 text-sm mb-1">Saldo Tersedia</p>
+                        <h2 class="text-2xl font-bold text-emerald-400">Rp 112.500.000</h2>
+                    </div>
+
+                    <!-- Kas Kecil -->
+                    <div class="bg-gradient-to-br from-dark-800 to-dark-900 border border-dark-700 rounded-2xl p-6 relative overflow-hidden group hover:border-emerald-500/50 transition-all shadow-lg cursor-pointer">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full -z-10 group-hover:bg-emerald-500/10 transition-colors"></div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Kas Kecil</h3>
+                                <p class="text-xs text-gray-400">1-10001</p>
+                            </div>
+                            <div class="bg-dark-700/50 p-2 rounded-lg">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                        </div>
+                        <p class="text-gray-400 text-sm mb-1">Saldo Tersedia</p>
+                        <h2 class="text-2xl font-bold text-emerald-400">Rp 4.500.000</h2>
+                    </div>
+                    
+                    <!-- Bank Mandiri -->
+                    <div class="bg-gradient-to-br from-dark-800 to-dark-900 border border-dark-700 rounded-2xl p-6 relative overflow-hidden group hover:border-emerald-500/50 transition-all shadow-lg cursor-pointer">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full -z-10 group-hover:bg-emerald-500/10 transition-colors"></div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Bank Mandiri</h3>
+                                <p class="text-xs text-gray-400">1-10003</p>
+                            </div>
+                            <div class="bg-dark-700/50 p-2 rounded-lg">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                            </div>
+                        </div>
+                        <p class="text-gray-400 text-sm mb-1">Saldo Tersedia</p>
+                        <h2 class="text-2xl font-bold text-emerald-400">Rp 7.500.000</h2>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="bg-dark-800 border border-dark-700 rounded-xl overflow-hidden shadow-sm">
+                    <div class="p-4 border-b border-dark-700 flex justify-between items-center bg-dark-800/50">
+                        <h3 class="font-bold text-white">Riwayat Transaksi Terakhir</h3>
+                        <div class="flex space-x-2">
+                            <select class="kb-input w-48 text-xs py-1">
+                                <option value="">Semua Akun Kas/Bank</option>
+                                <option value="bca">Bank BCA</option>
+                                <option value="kas">Kas Kecil</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-300">
+                            <thead class="bg-dark-700/30 text-gray-400 border-b border-dark-700 text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4 font-semibold">Tanggal</th>
+                                    <th class="px-6 py-4 font-semibold">Tipe</th>
+                                    <th class="px-6 py-4 font-semibold">Deskripsi</th>
+                                    <th class="px-6 py-4 font-semibold">Akun Terkait</th>
+                                    <th class="px-6 py-4 font-semibold text-right">Masuk</th>
+                                    <th class="px-6 py-4 font-semibold text-right">Keluar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-dark-700">
+                                <tr class="hover:bg-dark-700/30 transition-colors">
+                                    <td class="px-6 py-4">18 Mei 2026</td>
+                                    <td class="px-6 py-4"><span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs font-medium">Uang Masuk</span></td>
+                                    <td class="px-6 py-4">Pelunasan Invoice INV/2026/05/001</td>
+                                    <td class="px-6 py-4 font-medium text-white">Bank BCA</td>
+                                    <td class="px-6 py-4 text-right text-emerald-400 font-medium">15.000.000</td>
+                                    <td class="px-6 py-4 text-right">-</td>
+                                </tr>
+                                <tr class="hover:bg-dark-700/30 transition-colors">
+                                    <td class="px-6 py-4">17 Mei 2026</td>
+                                    <td class="px-6 py-4"><span class="bg-rose-500/10 text-rose-400 px-2 py-1 rounded text-xs font-medium">Uang Keluar</span></td>
+                                    <td class="px-6 py-4">Cicilan PUR/2026/05/042</td>
+                                    <td class="px-6 py-4 font-medium text-white">Bank BCA</td>
+                                    <td class="px-6 py-4 text-right">-</td>
+                                    <td class="px-6 py-4 text-right text-rose-400 font-medium">5.000.000</td>
+                                </tr>
+                                <tr class="hover:bg-dark-700/30 transition-colors">
+                                    <td class="px-6 py-4">16 Mei 2026</td>
+                                    <td class="px-6 py-4"><span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs font-medium">Transfer</span></td>
+                                    <td class="px-6 py-4">Isi ulang kas kecil mingguan</td>
+                                    <td class="px-6 py-4 font-medium text-white">BCA &rarr; Kas Kecil</td>
+                                    <td class="px-6 py-4 text-right">-</td>
+                                    <td class="px-6 py-4 text-right text-blue-400 font-medium">2.000.000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORM TRANSFER VIEW -->
+            <div id="formTransfer" class="hidden max-w-2xl mx-auto">
+                <div class="mb-4">
+                    <button onclick="toggleView('list')" class="text-gray-400 hover:text-white flex items-center transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Batal Transfer
+                    </button>
+                </div>
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-6 border-b border-dark-700 bg-dark-800/50">
+                        <h2 class="text-xl font-bold text-white">Transfer Uang (Antar Kas/Bank)</h2>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Tarik Dari</label>
+                                <select class="kb-input">
+                                    <option value="1-10002">Bank BCA</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Setor Ke</label>
+                                <select class="kb-input">
+                                    <option value="1-10001">Kas Kecil</option>
+                                    <option value="1-10003">Bank Mandiri</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1">Nominal (Rp)</label>
+                            <input type="number" class="kb-input font-medium text-lg text-emerald-400" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1">Tanggal</label>
+                            <input type="date" class="kb-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1">Keterangan / Memo</label>
+                            <input type="text" class="kb-input" placeholder="Tujuan transfer...">
+                        </div>
+                    </div>
+                    <div class="p-6 border-t border-dark-700 bg-dark-800 flex justify-end space-x-3">
+                        <button onclick="alert('Transfer disimpan!'); toggleView('list');" class="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 shadow-lg transition-colors">
+                            Proses Transfer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORM TRANSACTION VIEW -->
+            <div id="formTransaction" class="hidden max-w-2xl mx-auto">
+                <div class="mb-4">
+                    <button onclick="toggleView('list')" class="text-gray-400 hover:text-white flex items-center transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Batal
+                    </button>
+                </div>
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-6 border-b border-dark-700 bg-dark-800/50 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-white">Terima / Kirim Uang (Non-Invoice)</h2>
+                        <div class="flex space-x-2">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" name="tx_type" value="in" checked class="text-emerald-500 bg-dark-900 border-gray-600 focus:ring-emerald-500">
+                                <span class="text-sm font-medium text-emerald-400">Terima Uang</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" name="tx_type" value="out" class="text-rose-500 bg-dark-900 border-gray-600 focus:ring-rose-500">
+                                <span class="text-sm font-medium text-rose-400">Kirim Uang</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1">Akun Kas/Bank</label>
+                            <select class="kb-input">
+                                <option value="1-10002">Bank BCA</option>
+                                <option value="1-10001">Kas Kecil</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1">Lawan Akun (Akun Pembukuan)</label>
+                            <select class="kb-input">
+                                <option value="">-- Pilih COA --</option>
+                                <option value="4">Pendapatan Bunga Bank</option>
+                                <option value="6">Biaya Administrasi Bank</option>
+                                <option value="3">Modal Pemilik / Penarikan (Prive)</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Akun penyeimbang untuk jurnal ganda</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Nominal (Rp)</label>
+                                <input type="number" class="kb-input font-medium text-lg" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Tanggal</label>
+                                <input type="date" class="kb-input">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-1">Keterangan / Memo</label>
+                            <input type="text" class="kb-input" placeholder="Tulis alasan transaksi...">
+                        </div>
+                    </div>
+                    <div class="p-6 border-t border-dark-700 bg-dark-800 flex justify-end space-x-3">
+                        <button onclick="alert('Transaksi dicatat!'); toggleView('list');" class="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg transition-colors">
+                            Simpan Transaksi
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script>
+        function toggleView(view) {
+            document.getElementById('listView').classList.add('hidden');
+            document.getElementById('formTransfer').classList.add('hidden');
+            document.getElementById('formTransaction').classList.add('hidden');
+            
+            document.getElementById(view).classList.remove('hidden');
+            if (view !== 'list') {
+                document.getElementById(view).classList.add('animate-fade-in-up');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Vitta ERP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#111827',
+                            800: '#1f2937',
+                            700: '#374151',
+                            600: '#4b5563',
+                        },
+                        primary: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex items-center justify-center relative overflow-hidden">
+    <!-- Decorative background -->
+    <div class="absolute w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -z-10"></div>
+
+    <div class="w-full max-w-md p-8 bg-dark-800/80 backdrop-blur-xl rounded-2xl border border-dark-700 shadow-2xl">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2 tracking-tight">Vitta ERP</h2>
+            <p class="text-gray-400">Masuk ke sistem manajemen perusahaan</p>
+        </div>
+
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Email</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                        </svg>
+                    </div>
+                    <input type="text" id="email" class="w-full pl-10 pr-4 py-3 bg-dark-900 border border-dark-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-white placeholder-gray-500 transition-all outline-none" placeholder="budileo / email" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Password</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <input type="password" id="password" class="w-full pl-10 pr-4 py-3 bg-dark-900 border border-dark-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent text-white placeholder-gray-500 transition-all outline-none" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-primary hover:bg-blue-600 text-white font-medium rounded-xl transition-colors focus:ring-4 focus:ring-blue-500/50">
+                Masuk ke Sistem
+            </button>
+        </form>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === 'budileo' && password === '484815') {
+                // Simpan sesi user (tanpa department_id tunggal)
+                localStorage.setItem('vitta_user', JSON.stringify({
+                    id: 'usr-budileo-001',
+                    username: 'budileo',
+                    role: 'OWNER'
+                }));
+
+                // Hapus departemen aktif sebelumnya agar user harus memilih ulang
+                localStorage.removeItem('vitta_active_dept');
+
+                // Pastikan ada data departemen mock untuk testing
+                if (!localStorage.getItem('vitta_mock_departments')) {
+                    localStorage.setItem('vitta_mock_departments', JSON.stringify([
+                        {
+                            id: 'dept-pusat-001',
+                            name: 'Manajemen Pusat',
+                            email: 'pusat@vitta.com',
+                            address: 'Jl. Jendral Sudirman No. 1, Jakarta',
+                            phone: '021-5551234',
+                            whatsapp: '081234567890',
+                            owner_name: 'Budi Leo',
+                            owner_phone: '081234567890',
+                            logo: '',
+                            invite_token: 'INV-PUSAT-001'
+                        },
+                        {
+                            id: 'dept-cabang-002',
+                            name: 'Cabang Surabaya',
+                            email: 'surabaya@vitta.com',
+                            address: 'Jl. Pemuda No. 45, Surabaya',
+                            phone: '031-7771234',
+                            whatsapp: '082345678901',
+                            owner_name: 'Budi Leo',
+                            owner_phone: '081234567890',
+                            logo: '',
+                            invite_token: 'INV-SBY-002'
+                        }
+                    ]));
+                }
+
+                window.location.href = 'index.html';
+            } else {
+                alert('Login gagal. Silakan gunakan budileo / 484815 untuk uji coba Owner.');
+            }
+        });
+    </script>
+</body>
+</html>

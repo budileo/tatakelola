@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Karyawan - Vitta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-4 text-center">Registrasi Karyawan</h2>
+        <p class="text-gray-600 mb-6 text-center text-sm">Silakan isi formulir pendaftaran di bawah. Akun Anda memerlukan persetujuan dari Manager sebelum dapat digunakan.</p>
+        
+        <form id="registerForm" onsubmit="handleRegister(event)">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Nama Lengkap</label>
+                <input type="text" id="regName" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                <input type="email" id="regEmail" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                <input type="password" id="regPassword" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 w-full text-white font-bold py-2 px-4 rounded">Daftar Sekarang</button>
+        </form>
+    </div>
+
+<script>
+    function handleRegister(e) {
+        e.preventDefault();
+        
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token') || 'UNKNOWN-TOKEN';
+
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        
+        // Mockup pendaftaran
+        const mockUsers = JSON.parse(localStorage.getItem('vitta_mock_users')) || [];
+        
+        // Cari departemen berdasarkan token invite
+        const departments = JSON.parse(localStorage.getItem('vitta_mock_departments')) || [];
+        const dept = departments.find(d => d.invite_token === token);
+        
+        const newUser = {
+            id: 'usr-' + Date.now(),
+            name: name,
+            email: email,
+            status: 'PENDING',
+            department_id: dept ? dept.id : 'unknown',
+            department_name: dept ? dept.name : 'Unknown',
+            role: 'STAF' // default role
+        };
+        
+        mockUsers.push(newUser);
+        localStorage.setItem('vitta_mock_users', JSON.stringify(mockUsers));
+        
+        alert('Pendaftaran berhasil! Status Anda saat ini adalah PENDING. Silakan hubungi Manager Anda untuk aktivasi.');
+        window.location.href = 'login.html';
+    }
+</script>
+</body>
+</html>

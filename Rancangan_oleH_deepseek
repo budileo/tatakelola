@@ -1,0 +1,499 @@
+Ringkasan Arsitektur
+
+Vitta adalah aplikasi akuntansi berbasis SaaS dengan arsitektur modern yang aman, scalable, dan multi-tenant. Dibangun dengan:
+
+Frontend: HTML + Tailwind CSS (mobile-optimized, collapsible sidebar, off-canvas menu)
+
+Backend: Supabase (Auth, Database, RLS, Storage)
+
+Pola: Server-based authentication, multi-tenant isolation via company_id, token-based billing
+
+APP FLOW (Alur Aplikasi)
+text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         1. AUTHENTICATION FLOW                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Login (email/password) → supabase.auth.signInWithPassword()           │
+│  → Session & User di-backend → Ambil company_id dari memberships       │
+│  → Redirect ke Beranda (wajib cek session tiap halaman)                │
+│  → Logout → supabase.auth.signOut()                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         2. DASHBOARD & NAVIGASI                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Sidebar collapsible (icon only di mobile → off-canvas)                │
+│  Menu Dinamis (berdasarkan Role & Permission)                          │
+│  Header: Saldo Token, Nama User, Company                               │
+└─────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         3. TRANSAKSI BISNIS (CORE)                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│  PENJUALAN → Invoice → Pembayaran → Jurnal Otomatis (Double Entry)      │
+│  PEMBELIAN → Purchase → Pembayaran Hutang → Jurnal Otomatis             │
+│  BIAYA → Form Expense → Jurnal Otomatis (Kas/Bank atau Hutang)          │
+│  KAS & BANK → Uang Masuk/Keluar/Transfer → Jurnal                       │
+└─────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      4. AKUNTANSI & PELAPORAN                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Setiap transaksi → Jurnal → Buku Besar → Laporan Keuangan              │
+│  (Laba Rugi, Neraca, Buku Besar, Piutang/Hutang per Kontak)             │
+│  Hanya transaksi "posted" yang masuk laporan                            │
+└─────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         5. TOKEN & BILLING                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Setiap aktivitas bisnis (buat/edit/hapus invoice, payment, export)    │
+│  → Cek saldo token → Jika cukup → kurangi & catat log → proses         │
+│  → Jika tidak cukup → notifikasi topup                                  │
+│  Topup paket token (100/250/500/1000) via pembayaran                    │
+└─────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         6. AI ASSISTANT                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Bubble di kanan bawah → Idle 60 detik atau perubahan data signifikan   │
+│  → Ambil insight dari halaman aktif → Tampilkan max 2 kalimat           │
+│  → Minimal 2 menit interval, tidak berulang                             │
+└─────────────────────────────────────────────────────────────────────────┘
+CORE FEATURE (Fitur Utama)
+Modul	Deskripsi
+Beranda	Dashboard grafis (ApexCharts) penjualan, kas, piutang, pembelian, hutang periode berjalan
+Penjualan	Invoice multi-item + termin + DP + cicilan, auto jurnal (Piutang/Pendapatan/Kas), status otomatis (Lunas/Sebagian/Jatuh Tempo/Void)
+Pembelian	Purchase dari supplier, hutang usaha, pembayaran cicilan, auto jurnal (Persediaan/Hutang/Kas)
+Biaya	Expense payment (Kas/Bank) atau hutang, multi-baris akun biaya, auto split pajak
+Produk	Master produk dengan SKU auto, foto, toggle (beli/jual/lacak stok), akun COA (Penjualan/HPP/Persediaan), harga grosir, FIFO/AVERAGE
+Kontak	Customer/Supplier, grup, akun piutang/hutang otomatis dari COA, ledger per kontak, foto, NPWP
+Inventori	Multi-gudang, stock movement (in/out/transfer/adjustment), moving average HPP, auto jurnal persediaan
+Kas & Bank	Daftar akun kas/bank, saldo real-time dari jurnal, transaksi manual, rekonsiliasi, grafis pergerakan
+COA	Auto seed database saat register (100+ akun sistem), is_system=true tidak bisa edit/hapus, user boleh tambah akun custom
+Aset Tetap	Fixed asset dengan auto jurnal, penyusutan (garis lurus/saldo menurun), auto generate jurnal penyusutan per bulan
+Role & Permission	Manajemen peran (Admin/Staff/Viewer), permission per modul + action (view/create/edit/delete), middleware backend
+Pengaturan	Role & permission, general settings, periode akuntansi, backup
+Tokenisasi	Pay-per-activity: invoice (1 token), edit (2 token), export (3 token), dll. Topup paket, history penggunaan
+AI Assistant	Insight data otomatis via bubble chat, idle trigger, analisis halaman aktif
+FITUR SISTEM DETAIL (Sesuai Spesifikasi)
+1. AUTHENTICATION & SESSION (WAJIB SERVER-BASED)
+javascript
+// auth.js - SEMUA DI BACKEND (Supabase)
+async function login(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function getUser() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  return user;
+}
+
+// DILARANG: validasi password di browser, localStorage manual, login buatan sendiri
+2. MULTI-TENANT SYSTEM
+Setiap tabel memiliki:
+
+user_id (siapa yang membuat/memiliki)
+
+company_id (isolasi data antar perusahaan)
+
+Tabel Minimal:
+
+users (dari Supabase Auth + tambahan company_id default)
+
+companies (id, nama, subdomain, settings)
+
+memberships (user_id, company_id, role_id)
+
+activities (log aktivitas)
+
+RLS Policy Contoh:
+
+sql
+CREATE POLICY "User hanya akses data perusahaannya sendiri"
+ON invoices FOR ALL USING (company_id = (SELECT company_id FROM memberships WHERE user_id = auth.uid()));
+3. PENJUALAN (INVOICE + PAYMENT + AUTO JURNAL)
+Halaman List Invoice:
+
+Filter tanggal, status (Lunas/Belum Dibayar/Sebagian/Jatuh Tempo/Retur/Void)
+
+Kolom: No.Invoice, Pelanggan, Tanggal, Jatuh Tempo, Total, Sisa Tagihan, Status
+
+Form Invoice:
+
+Pelanggan (dropdown dari tabel contacts)
+
+No.Invoice auto: INV/YYYY/MM/XXXX
+
+Termin (COD/7/15/30/Custom)
+
+Item produk multi-baris (produk, qty, harga, diskon, pajak → jumlah auto)
+
+Perhitungan: subtotal, diskon invoice, biaya kirim, DP, sisa tagihan
+
+Validasi: wajib pelanggan, item, total ≠ 0
+
+Proses Akuntansi (Otomatis):
+
+Skenario	Debit	Kredit
+Invoice (belum bayar)	Piutang Usaha	Pendapatan
+Ada Pajak	-	Utang Pajak
+Ada DP	Kas/Bank	Uang Muka Pelanggan
+Pembayaran normal	Kas/Bank	Piutang Usaha
+Pembayaran + potongan	Kas/Bank, Beban Potongan	Piutang Usaha
+Status Otomatis:
+
+Sisa = 0 → Lunas
+
+0 < Pembayaran < Total → Sebagian
+
+Belum ada pembayaran → Belum Dibayar
+
+Lewat jatuh tempo & belum lunas → Jatuh Tempo
+
+Log & Audit: simpan created_by, created_at, updated_by, updated_at, status_history
+
+4. PEMBELIAN (PURCHASE + HUTANG)
+Mirip penjualan dengan akun berbeda:
+
+No.Pembelian: PUR/YYYY/MM/XXXX
+
+Supplier dari tabel contacts (tipe supplier)
+
+Jurnal: Debit Persediaan/Biaya, Kredit Hutang Usaha (jika belum bayar)
+
+Pembayaran hutang: Debit Hutang Usaha, Kredit Kas/Bank
+
+Update stok otomatis jika produk punya inventory active
+
+5. BIAYA (EXPENSE)
+Form multi-baris dengan:
+
+Akun Biaya (dari COA)
+
+Deskripsi, Pajak (PPN auto split DPP)
+
+Dibayar Dari (Akun Kas/Bank)
+
+Toggle "Bayar Nanti" → Debit Biaya, Kredit Hutang Usaha
+
+No.Transaksi: EXP/YYYY/MM/XXXX
+
+Validasi: tidak boleh total=0, wajib ada baris
+
+6. PRODUK (MASTER & INVENTORY)
+Toggle Mode:
+
+"Saya membeli item ini" → Harga Beli, akun Pembelian
+
+"Saya menjual item ini" → Harga Jual, harga grosir, akun Penjualan
+
+"Saya melacak inventory" → Stok awal, stok minimal, akun Persediaan, metode FIFO/AVERAGE
+
+Auto Integrasi:
+
+Penjualan → jika inventory aktif: Debit HPP, Kredit Persediaan
+
+Pembelian → Debit Persediaan, Kredit Hutang/Kas
+
+SKU Auto: SKU/XXXXX (unique)
+
+7. KONTAK (CUSTOMER & SUPPLIER)
+Tipe: Customer / Supplier / Keduanya
+
+Akun Piutang (untuk customer) atau Hutang (untuk supplier) dari COA
+
+Expandable: NPWP, NIK, default termin, default pajak
+
+Monitoring: Total Piutang, Total Hutang per kontak, histori transaksi (ledger)
+
+Validasi: Nama wajib, email/telepon unik per company
+
+8. INVENTORI & GUDANG
+Multi-warehouse (tabel warehouses)
+
+inventory (product_id, warehouse_id, qty, hpp, total_nilai)
+
+stock_movements (tipe: in/out/transfer/adjustment, reference_id)
+
+HPP metode Moving Average: (nilai_lama + pembelian_baru) / (qty_lama + qty_baru)
+
+Aktivitas: Transfer Gudang, Penyesuaian Stok, Export/Print
+
+Token: tambah stok (1), transfer (2), penyesuaian (1)
+
+9. KAS & BANK
+Akun Kas/Bank dari COA (kategori "Kas & Bank", is_system=false)
+
+Saldo dihitung dari jurnal: SUM(debit) - SUM(kredit)
+
+Transaksi manual: Uang Masuk, Uang Keluar, Transfer antar rekening
+
+Jurnal otomatis terintegrasi dengan modul lain (pembayaran invoice, pembelian, dll)
+
+Rekonsiliasi (cocokkan dengan rekening bank)
+
+10. COA (CHART OF ACCOUNTS) - AUTO SEED
+Saat user pertama kali register atau sistem baru, jalankan seed:
+
+Kode	Nama	Kategori	is_system
+1-10001	Kas	Kas & Bank	true
+1-10100	Piutang Usaha	Akun Piutang	true
+2-20100	Hutang Usaha	Akun Hutang	true
+4-40000	Pendapatan	Pendapatan	true
+5-50000	Beban Pokok Pendapatan	HPP	true
+...	...	...	...
+(100+ akun lengkap dari neraca, laba rugi, beban, pendapatan lain, dll)
+
+Field tambahan: system_code (CASH, AR, AP, COGS, dll) untuk mapping otomatis.
+
+11. ASET TETAP
+No.Aset auto: FA00001 (increment per company)
+
+Jurnal saat pembelian: Debit Akun Aset, Kredit Akun Kas/Bank/Hutang
+
+Penyusutan (toggle): Metode Garis Lurus atau Saldo Menurun
+
+Hitung beban per bulan: (Harga - Residu) / (Umur dalam bulan)
+
+Generate jurnal penyusutan otomatis setiap periode: Debit Beban Penyusutan, Kredit Akumulasi Penyusutan
+
+Token: tambah aset (2), aktifkan penyusutan (+1)
+
+12. ROLE & PERMISSION
+Tabel:
+
+roles (id, name, company_id)
+
+permissions (module_name, action) → data master
+
+role_permissions (role_id, permission_id)
+
+users tambahan field role_id
+
+Default Roles:
+
+Role	Akses
+Administrator	Semua modul + semua action
+Staff	Terbatas (edit/hapus tertentu)
+Viewer	Hanya lihat (view only)
+Middleware Backend:
+
+javascript
+async function requirePermission(module, action) {
+  const user = await getUser();
+  const role = await getRole(user.role_id);
+  const hasAccess = await checkPermission(role.id, module, action);
+  if (!hasAccess) throw new Error('403 Forbidden');
+}
+13. ENGINE AKUNTANSI (WAJIB DOUBLE ENTRY)
+Aturan:
+
+Setiap transaksi → jurnal otomatis (user tidak input manual)
+
+Total Debit = Total Kredit → jika tidak balance, transaksi batal
+
+Mapping akun berdasarkan jenis transaksi (bukan pilihan manual)
+
+Alur: Transaksi → Jurnal → Buku Besar → Laporan
+
+Status transaksi: draft → posted → void
+
+Void tidak hapus, buat jurnal pembalik (reversal)
+
+Periode akuntansi: bulan+tahun, periode terkunci tidak bisa edit
+
+Jurnal Wajib untuk setiap modul:
+
+Modul	Debit	Kredit
+Invoice	Piutang Usaha	Pendapatan
+Pembayaran Invoice	Kas/Bank	Piutang Usaha
+Purchase	Persediaan/Biaya	Hutang Usaha
+Pembayaran Hutang	Hutang Usaha	Kas/Bank
+Biaya (bayar sekarang)	Akun Biaya	Kas/Bank
+Biaya (bayar nanti)	Akun Biaya	Hutang Usaha
+Kas Masuk	Kas/Bank	Akun Lawan
+Kas Keluar	Akun Lawan	Kas/Bank
+14. TOKENISASI (PAY-PER-ACTIVITY)
+Struktur Biaya Token:
+
+Aktivitas	Token
+Buat Invoice	1
+Edit Invoice	2
+Hapus Invoice	1
+Upload attachment	1
+Buat Pembelian	1
+Edit Pembelian	2
+Input Pembayaran (jual/beli)	1
+Input Biaya	1
+Edit Biaya	2
+View Laporan	1
+Export PDF/Excel	3
+Pencarian data	1
+Proses:
+
+Cek saldo token via RLS/backend function
+
+Jika cukup → mulai transaction DB
+
+Kurangi saldo + insert token_transactions
+
+Jalankan proses utama (simpan invoice, dll)
+
+Jika gagal → rollback (token tidak terpotong)
+
+Jika tidak cukup → return error "Token tidak mencukupi"
+
+Topup:
+
+Paket: 100 / 250 / 500 / 1000 token
+
+Setelah pembayaran → tambah saldo, record token_topup
+
+UI:
+
+Tampilkan saldo token di header/dashboard
+
+Estimasi token sebelum aksi: "Aksi ini akan menggunakan 2 token"
+
+Notifikasi token hampir habis (< 10 token)
+
+15. AI ASSISTANT
+Behavior:
+
+Bubble chat floating di kanan bawah (animasi halus, bisa close)
+
+Trigger: User idle 60 detik ATAU ada perubahan data signifikan (invoice baru, stok menipis)
+
+Ambil data dari halaman aktif via API
+
+Hanya tampilkan jika ada insight penting (misal: "Invoice pelanggan X jatuh tempo besok, total Rp5.000.000")
+
+Output maksimal 2 kalimat, tone natural
+
+Frequency: max 1 insight per 2 menit, tidak sama berulang
+
+Contoh:
+
+"Hari ini belum ada transaksi penjualan. Bagaimana kalau cek dashboard marketing?"
+
+"Stok produk 'Kopi Arabika' tinggal 3kg. Saatnya pesan ke supplier."
+
+PROTEKSI HALAMAN (MIDDLEWARE)
+Setiap halaman wajib cek:
+
+javascript
+// script di setiap halaman (selain login)
+async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    window.location.href = '/login.html';
+    return;
+  }
+  // Ambil user & company_id
+  const { data: { user } } = await supabase.auth.getUser();
+  // Set global context
+  window.currentUser = user;
+}
+Redirect otomatis ke login jika tidak ada session.
+
+STRUKTUR FILE (WAJIB DIPISAH)
+text
+/project
+│
+├── index.html (beranda)
+├── login.html
+├── penjualan.html
+├── pembelian.html
+├── biaya.html
+├── produk.html
+├── kontak.html
+├── inventori.html
+├── kasbank.html
+├── coa.html
+├── aset-tetap.html
+├── pengaturan-role.html
+├── laporan.html
+│
+├── /css
+│   └── style.css (Tailwind imports)
+│
+├── /js
+│   ├── auth.js        (login, logout, getUser, session)
+│   ├── db.js          (query database, RLS-safe)
+│   ├── sidebar.js     (collapsible, off-canvas mobile)
+│   ├── token.js       (cek saldo, potong token, topup)
+│   ├── accounting.js  (jurnal engine)
+│   └── ai-assistant.js
+│
+├── /components
+│   └── sidebar.html   (loaded via fetch/JS)
+│
+└── /supabase
+    └── migrations.sql (RLS policies, seed COA)
+DESAIN MENU (COLLAPSIBLE SIDEBAR)
+Desktop: Sidebar bisa collapse ke icon only (lebar 64px), animasi smooth.
+
+Mobile: Sidebar off-canvas (slide dari kiri + overlay gelap), klik luar tutup.
+
+Toggle button di header (hamburger icon).
+
+Pisahkan sidebar.html dan sidebar.js agar reusable.
+
+javascript
+// sidebar.js - contoh logic
+function toggleSidebar() {
+  if (window.innerWidth < 768) {
+    // mobile: show/hide off-canvas
+    document.getElementById('mobileSidebar').classList.toggle('translate-x-0');
+  } else {
+    // desktop: collapse/expand
+    document.getElementById('sidebar').classList.toggle('w-16');
+  }
+}
+KEAMANAN (WAJIB)
+Aturan	Implementasi
+RLS Aktif	Semua tabel ALTER TABLE ... ENABLE ROW LEVEL SECURITY
+Policy user-company	company_id = (SELECT company_id FROM memberships WHERE user_id = auth.uid())
+Jangan expose service_role	Gunakan anon key di frontend, semua logic sensitif via Supabase Functions atau RLS
+Validasi hanya di backend	Frontend hanya tampilan, tidak pernah hitung saldo/validasi password
+Audit log	Semua perubahan transaksi tercatat di audit_logs
+TOKEN & BILLING - INTEGRASI LENGKAP
+sql
+-- Contoh transaction untuk buat invoice
+BEGIN;
+  -- 1. Cek saldo token
+  SELECT balance FROM tokens WHERE user_id = auth.uid() FOR UPDATE;
+  -- 2. Jika balance >= cost
+  UPDATE tokens SET balance = balance - 1 WHERE user_id = auth.uid();
+  -- 3. Log token transaction
+  INSERT INTO token_transactions (user_id, activity_type, token_used, reference_id)
+  VALUES (auth.uid(), 'invoice_create', 1, NEW.id);
+  -- 4. Simpan invoice
+  INSERT INTO invoices (...);
+  -- 5. Generate jurnal
+  INSERT INTO journal_entries (...);
+COMMIT;
+KESIMPULAN
+Vitta siap dibangun dengan:
+
+✅ Arsitektur SaaS secure & scalable (Supabase + RLS + multi-tenant)
+
+✅ Akuntansi otomatis double entry (user non-akuntan bisa pakai)
+
+✅ Tokenisasi pay-per-activity (bukan langganan bulanan)
+
+✅ Mobile-first dengan sidebar collapsible & off-canvas
+
+✅ Semua aturan keamanan terpenuhi (auth server-based, session resmi, tidak ada logic sensitif di frontend)
+
+✅ Modul lengkap: Penjualan, Pembelian, Biaya, Produk, Kontak, Inventori, Kas/Bank, COA, Aset Tetap, Role, Laporan, AI Assistant
+
+Siap untuk diimplementasikan dengan Supabase sebagai backend dan Tailwind sebagai frontend.

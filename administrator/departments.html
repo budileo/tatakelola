@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Departemen - Administrator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+<div class="flex flex-col md:flex-row">
+    <!-- Sidebar -->
+    <div class="bg-gray-800 shadow-xl h-16 fixed bottom-0 md:relative md:h-screen z-10 w-full md:w-64">
+        <div class="md:mt-12 md:w-64 md:fixed md:left-0 md:top-0 content-center md:content-start text-left justify-between">
+            <ul class="list-reset flex flex-row md:flex-col py-0 md:py-3 px-1 md:px-2 text-center md:text-left">
+                <li class="mr-3 flex-1">
+                    <a href="index.html" class="block py-1 md:py-3 pl-1 align-middle text-gray-400 hover:text-white border-b-2 border-gray-800 hover:border-blue-600">
+                        <i class="fas fa-home pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 md:text-gray-200 block md:inline-block">Admin Dashboard</span>
+                    </a>
+                </li>
+                <li class="mr-3 flex-1">
+                    <a href="departments.html" class="block py-1 md:py-3 pl-1 align-middle text-white no-underline border-b-2 border-orange-500">
+                        <i class="fas fa-briefcase pr-0 md:pr-3 text-orange-500"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-white block md:inline-block">Departemen</span>
+                    </a>
+                </li>
+                <li class="mr-3 flex-1">
+                    <a href="users.html" class="block py-1 md:py-3 pl-1 align-middle text-gray-400 hover:text-white border-b-2 border-gray-800 hover:border-pink-500">
+                        <i class="fas fa-users pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 block md:inline-block">Pengguna</span>
+                    </a>
+                </li>
+                <li class="mr-3 flex-1">
+                    <a href="settings.html" class="block py-1 md:py-3 pl-1 align-middle text-gray-400 hover:text-white border-b-2 border-gray-800 hover:border-green-500">
+                        <i class="fas fa-cog pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 block md:inline-block">Pengaturan</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content flex-1 bg-gray-100 mt-12 md:mt-2 pb-24 md:pb-5 h-screen overflow-y-auto">
+        <div class="bg-blue-800 p-2 shadow text-xl text-white flex justify-between">
+            <h3 class="font-bold pl-2">Manajemen Departemen</h3>
+            <button onclick="logout()" class="text-sm bg-red-500 hover:bg-red-600 px-3 py-1 rounded">Logout</button>
+        </div>
+
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Daftar Departemen</h2>
+                <button onclick="openModal('add')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    <i class="fas fa-plus mr-2"></i> Tambah Departemen
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white rounded shadow overflow-x-auto">
+                <table class="min-w-full leading-normal">
+                    <thead>
+                        <tr>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Logo & Nama</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Kontak Utama</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Pemilik</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Link Invite Unik</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deptTableBody">
+                        <!-- Rows will be populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Form -->
+<div id="deptModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex justify-center items-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
+        <div class="flex justify-between items-center p-4 border-b">
+            <h3 class="text-xl font-bold" id="modalTitle">Tambah Departemen Baru</h3>
+            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times fa-lg"></i></button>
+        </div>
+        <form id="deptForm" onsubmit="saveDepartment(event)" class="p-6">
+            <input type="hidden" id="deptId">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Nama Departemen *</label>
+                    <input type="text" id="deptName" required class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                    <input type="email" id="deptEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Alamat Lengkap</label>
+                    <textarea id="deptAddress" rows="2" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">No Telp</label>
+                    <input type="text" id="deptPhone" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">No Whatsapp</label>
+                    <input type="text" id="deptWa" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Nama Pemilik Departemen</label>
+                    <input type="text" id="deptOwnerName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">No HP Pemilik Departemen</label>
+                    <input type="text" id="deptOwnerPhone" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">URL Logo (Opsional)</label>
+                    <input type="text" id="deptLogo" placeholder="https://..." class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+            </div>
+            
+            <div class="flex justify-end pt-4 border-t">
+                <button type="button" onclick="closeModal()" class="mr-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">Batal</button>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../js/auth.js"></script>
+<script src="js/admin-core.js"></script>
+<script>
+    let departments = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const user = await window.checkAdminAuth();
+        if(user) {
+            if(user.role !== 'OWNER') {
+                alert('Hanya Owner yang bisa mengakses Manajemen Departemen.');
+                window.location.href = 'index.html';
+                return;
+            }
+            loadDepartments();
+        }
+    });
+
+    function loadDepartments() {
+        const saved = localStorage.getItem('vitta_mock_departments');
+        if (saved) {
+            departments = JSON.parse(saved);
+        } else {
+            // Default mock data
+            departments = [{
+                id: 'dept-pusat-001',
+                name: 'Manajemen Pusat',
+                email: 'pusat@vitta.com',
+                address: 'Jl. Jendral Sudirman No. 1, Jakarta',
+                phone: '021-5551234',
+                whatsapp: '081234567890',
+                owner_name: 'Budi Leo',
+                owner_phone: '081234567890',
+                logo: '',
+                invite_token: 'INV-PUSAT-001'
+            }];
+            saveToStorage();
+        }
+        renderTable();
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('vitta_mock_departments', JSON.stringify(departments));
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('deptTableBody');
+        tbody.innerHTML = '';
+        
+        departments.forEach(dept => {
+            const tr = document.createElement('tr');
+            
+            // Generate link based on current origin
+            const inviteLink = window.location.origin + '/register-invite.html?token=' + dept.invite_token;
+            const logoHtml = dept.logo ? `<img src="${dept.logo}" class="w-10 h-10 rounded-full mr-3 object-cover">` : `<div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 font-bold">${dept.name.charAt(0)}</div>`;
+            
+            tr.innerHTML = `
+                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                    <div class="flex items-center">
+                        ${logoHtml}
+                        <div class="ml-3">
+                            <p class="text-gray-900 whitespace-no-wrap font-bold">${dept.name}</p>
+                            <p class="text-gray-600 text-xs">${dept.address || '-'}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                    <p class="text-gray-900 whitespace-no-wrap"><i class="fas fa-envelope mr-1 text-gray-400"></i> ${dept.email || '-'}</p>
+                    <p class="text-gray-900 whitespace-no-wrap"><i class="fab fa-whatsapp mr-1 text-green-500"></i> ${dept.whatsapp || '-'}</p>
+                </td>
+                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                    <p class="text-gray-900 whitespace-no-wrap font-semibold">${dept.owner_name || '-'}</p>
+                    <p class="text-gray-600 text-xs">${dept.owner_phone || '-'}</p>
+                </td>
+                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                    <div class="flex items-center">
+                        <input type="text" value="${inviteLink}" readonly class="bg-gray-100 text-xs p-1 w-32 border rounded mr-2">
+                        <button onclick="copyLink('${inviteLink}')" class="text-blue-500 hover:text-blue-800"><i class="fas fa-copy"></i></button>
+                    </div>
+                </td>
+                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
+                    <button onclick="openModal('edit', '${dept.id}')" class="text-blue-600 hover:text-blue-900 mr-3"><i class="fas fa-edit"></i> Edit</button>
+                    <button onclick="deleteDept('${dept.id}')" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function copyLink(link) {
+        navigator.clipboard.writeText(link).then(() => {
+            alert('Link undangan disalin:\n' + link);
+        });
+    }
+
+    function openModal(mode, id = null) {
+        document.getElementById('deptModal').classList.remove('hidden');
+        const form = document.getElementById('deptForm');
+        form.reset();
+        
+        if (mode === 'edit') {
+            document.getElementById('modalTitle').innerText = 'Edit Departemen';
+            const dept = departments.find(d => d.id === id);
+            if (dept) {
+                document.getElementById('deptId').value = dept.id;
+                document.getElementById('deptName').value = dept.name;
+                document.getElementById('deptEmail').value = dept.email || '';
+                document.getElementById('deptAddress').value = dept.address || '';
+                document.getElementById('deptPhone').value = dept.phone || '';
+                document.getElementById('deptWa').value = dept.whatsapp || '';
+                document.getElementById('deptOwnerName').value = dept.owner_name || '';
+                document.getElementById('deptOwnerPhone').value = dept.owner_phone || '';
+                document.getElementById('deptLogo').value = dept.logo || '';
+            }
+        } else {
+            document.getElementById('modalTitle').innerText = 'Tambah Departemen Baru';
+            document.getElementById('deptId').value = '';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('deptModal').classList.add('hidden');
+    }
+
+    function saveDepartment(e) {
+        e.preventDefault();
+        const id = document.getElementById('deptId').value;
+        const newDept = {
+            id: id ? id : 'dept-' + Date.now(),
+            name: document.getElementById('deptName').value,
+            email: document.getElementById('deptEmail').value,
+            address: document.getElementById('deptAddress').value,
+            phone: document.getElementById('deptPhone').value,
+            whatsapp: document.getElementById('deptWa').value,
+            owner_name: document.getElementById('deptOwnerName').value,
+            owner_phone: document.getElementById('deptOwnerPhone').value,
+            logo: document.getElementById('deptLogo').value,
+            invite_token: id ? departments.find(d => d.id === id).invite_token : 'INV-' + Math.random().toString(36).substr(2, 6).toUpperCase()
+        };
+
+        if (id) {
+            const index = departments.findIndex(d => d.id === id);
+            departments[index] = newDept;
+        } else {
+            departments.push(newDept);
+        }
+
+        saveToStorage();
+        renderTable();
+        closeModal();
+    }
+
+    function deleteDept(id) {
+        if(confirm('Apakah Anda yakin ingin menghapus departemen ini? Data pengguna yang terkait mungkin akan kehilangan akses.')) {
+            departments = departments.filter(d => d.id !== id);
+            saveToStorage();
+            renderTable();
+        }
+    }
+</script>
+</body>
+</html>

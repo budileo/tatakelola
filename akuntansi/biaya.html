@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biaya Operasional - Vitta ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { dark: { 900: '#111827', 800: '#1f2937', 700: '#374151', 600: '#4b5563' }, primary: '#3b82f6', accent: '#8b5cf6' }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex">
+    
+    <div id="sidebar-container" class="shrink-0"></div>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden bg-dark-900">
+        <!-- Header -->
+        <header class="bg-dark-800 border-b border-dark-700 p-4 md:p-6 flex justify-between items-center shrink-0 sticky top-0 z-10">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="mr-4 text-gray-400 hover:text-white lg:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Biaya & Pengeluaran</h1>
+                    <p class="text-xs md:text-sm text-gray-400 hidden md:block">Pencatatan beban operasional perusahaan</p>
+                </div>
+            </div>
+            <div>
+                <button onclick="toggleView('form')" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-amber-500/20 flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Catat Biaya Baru
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Scrollable Area -->
+        <main class="flex-1 overflow-y-auto p-6">
+            
+            <!-- LIST VIEW -->
+            <div id="listView" class="max-w-7xl mx-auto space-y-6">
+                <!-- Filters & Search -->
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-dark-800 p-4 rounded-xl border border-dark-700">
+                    <div class="flex space-x-2 w-full md:w-auto">
+                        <input type="text" placeholder="Cari No. Referensi..." class="expense-input w-full md:w-64">
+                        <select class="expense-input w-48">
+                            <option value="">Semua Akun Pembayar</option>
+                            <option value="bca">Bank BCA</option>
+                            <option value="kas">Kas Kecil</option>
+                            <option value="hutang">Bayar Nanti (Hutang)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="bg-dark-800 border border-dark-700 rounded-xl overflow-hidden shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-300">
+                            <thead class="bg-dark-700/50 text-gray-400 border-b border-dark-700 text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4 font-semibold">No Transaksi</th>
+                                    <th class="px-6 py-4 font-semibold">Tanggal</th>
+                                    <th class="px-6 py-4 font-semibold">Penerima / Deskripsi</th>
+                                    <th class="px-6 py-4 font-semibold">Sumber Dana</th>
+                                    <th class="px-6 py-4 font-semibold text-right">Total Biaya</th>
+                                    <th class="px-6 py-4 font-semibold text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenseTableBody" class="divide-y divide-dark-700">
+                                <!-- Dynamic Content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORM VIEW -->
+            <div id="formView" class="hidden max-w-4xl mx-auto">
+                <div class="mb-4">
+                    <button onclick="toggleView('list')" class="text-gray-400 hover:text-white flex items-center transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Kembali ke Daftar
+                    </button>
+                </div>
+
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-6 border-b border-dark-700 bg-dark-800/50">
+                        <h2 class="text-xl font-bold text-white">Form Pencatatan Biaya</h2>
+                    </div>
+                    
+                    <div class="p-6 space-y-6">
+                        <!-- Top Info -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-dark-900/50 p-4 rounded-xl border border-dark-700">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Tanggal Biaya</label>
+                                <input type="date" class="expense-input" id="expenseDate">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Penerima (Opsional)</label>
+                                <input type="text" class="expense-input" id="expenseReceiver" placeholder="Nama Vendor / Karyawan">
+                            </div>
+                            
+                            <div class="md:col-span-2 pt-2 border-t border-dark-700">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Metode Pembayaran (Kredit Jurnal)</label>
+                                <div class="flex items-center space-x-6">
+                                    <label class="flex items-center space-x-2 cursor-pointer group">
+                                        <input type="radio" name="payment_method" value="cash" class="text-amber-500 focus:ring-amber-500 bg-dark-900 border-gray-600" checked onchange="togglePaymentMethod()">
+                                        <span class="text-gray-300 group-hover:text-white transition-colors">Bayar Langsung</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer group">
+                                        <input type="radio" name="payment_method" value="credit" class="text-amber-500 focus:ring-amber-500 bg-dark-900 border-gray-600" onchange="togglePaymentMethod()">
+                                        <span class="text-gray-300 group-hover:text-white transition-colors">Bayar Nanti (Hutang)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Source Account (Only visible if Pay Now) -->
+                            <div id="sourceAccountWrapper" class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Dibayar Dari (Kas/Bank)</label>
+                                <select class="expense-input" id="sourceAccount">
+                                    <option value="Kas Kecil">Kas Kecil (1-10001)</option>
+                                    <option value="Bank BCA" selected>Bank BCA (1-10002)</option>
+                                    <option value="Bank Mandiri">Bank Mandiri (1-10003)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Items Table -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-300 mb-3 border-b border-dark-700 pb-2">Rincian Akun Biaya (Debit Jurnal)</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left" id="expenseItemsTable">
+                                    <thead class="text-xs text-gray-400 uppercase">
+                                        <tr>
+                                            <th class="pb-2 w-2/5">Akun Biaya (COA)</th>
+                                            <th class="pb-2 w-1/3">Keterangan</th>
+                                            <th class="pb-2 w-48 text-right">Nominal</th>
+                                            <th class="pb-2 w-10"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="itemsBody" class="space-y-2">
+                                        <tr class="item-row group">
+                                            <td class="py-2 pr-2">
+                                                <select class="expense-input product-select">
+                                                    <option value="">-- Pilih Akun Biaya --</option>
+                                                    <option value="6-60001">6-60001 - Beban Gaji</option>
+                                                    <option value="6-60002">6-60002 - Beban Sewa</option>
+                                                    <option value="6-60003">6-60003 - Beban Listrik, Air & Telepon</option>
+                                                    <option value="6-60004">6-60004 - Perlengkapan Kantor</option>
+                                                </select>
+                                            </td>
+                                            <td class="py-2 pr-2"><input type="text" class="expense-input" placeholder="Deskripsi baris..."></td>
+                                            <td class="py-2 pr-2"><input type="number" class="expense-input item-price text-right" value="0" oninput="calculateTotal()"></td>
+                                            <td class="py-2 text-right">
+                                                <button onclick="removeRow(this)" class="text-dark-600 hover:text-rose-500 transition-colors">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button onclick="addRow()" class="mt-3 text-sm text-amber-500 hover:text-amber-400 font-medium flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Tambah Baris Biaya
+                            </button>
+                        </div>
+
+                        <!-- Calculations -->
+                        <div class="flex flex-col md:flex-row justify-between pt-6 border-t border-dark-700">
+                            <div class="w-full md:w-1/2 mb-6 md:mb-0 pr-4">
+                                <!-- Pajak Section -->
+                                <div class="bg-dark-900 border border-dark-700 p-4 rounded-xl">
+                                    <label class="flex items-center space-x-2 cursor-pointer mb-2">
+                                        <input type="checkbox" id="taxInclusive" class="text-amber-500 bg-dark-900 border-gray-600 rounded" onchange="calculateTotal()">
+                                        <span class="text-sm text-gray-300 font-medium">Harga sudah termasuk Pajak (Split)</span>
+                                    </label>
+                                    <p class="text-xs text-gray-500 leading-relaxed">Jika dicentang, sistem akan memecah otomatis Dasar Pengenaan Pajak (DPP) dan PPN Masukan dari total biaya.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full md:w-1/3 space-y-3">
+                                <div class="flex justify-between text-sm items-center border-t border-dark-700 pt-3 mt-3">
+                                    <span class="text-white font-bold text-lg">Total Pengeluaran</span>
+                                    <span class="text-amber-400 font-bold text-2xl" id="lblGrandTotal">Rp 0</span>
+                                </div>
+                                <div id="taxInfo" class="hidden text-xs text-gray-400 bg-dark-800 p-2 rounded text-right">
+                                    DPP: <span id="lblDPP">Rp 0</span><br>
+                                    PPN Masukan: <span id="lblTax">Rp 0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6 border-t border-dark-700 bg-dark-800 flex justify-end space-x-3">
+                        <button onclick="toggleView('list')" class="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-dark-700 transition-colors">Batal</button>
+                        <button onclick="saveExpense()" class="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 shadow-lg shadow-amber-500/20 transition-colors flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            Catat Biaya
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script>
+        function toggleView(view) {
+            if (view === 'form') {
+                document.getElementById('listView').classList.add('hidden');
+                document.getElementById('formView').classList.remove('hidden');
+                document.getElementById('formView').classList.add('animate-fade-in-up');
+            } else {
+                document.getElementById('formView').classList.add('hidden');
+                document.getElementById('listView').classList.remove('hidden');
+            }
+        }
+
+        function togglePaymentMethod() {
+            const method = document.querySelector('input[name="payment_method"]:checked').value;
+            const sourceWrapper = document.getElementById('sourceAccountWrapper');
+            if (method === 'credit') {
+                sourceWrapper.style.display = 'none';
+            } else {
+                sourceWrapper.style.display = 'block';
+            }
+        }
+
+        function addRow() {
+            const tbody = document.getElementById('itemsBody');
+            const newRow = tbody.children[0].cloneNode(true);
+            newRow.querySelector('.product-select').selectedIndex = 0;
+            newRow.querySelector('input[type="text"]').value = '';
+            newRow.querySelector('.item-price').value = 0;
+            tbody.appendChild(newRow);
+        }
+
+        function removeRow(btn) {
+            const tbody = document.getElementById('itemsBody');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+                calculateTotal();
+            }
+        }
+
+        const formatRp = (num) => 'Rp ' + Math.round(num).toLocaleString('id-ID');
+
+        function calculateTotal() {
+            const rows = document.querySelectorAll('.item-row');
+            let total = 0;
+
+            rows.forEach(row => {
+                const nominal = parseFloat(row.querySelector('.item-price').value) || 0;
+                total += nominal;
+            });
+
+            const isTaxInclusive = document.getElementById('taxInclusive').checked;
+            const taxInfo = document.getElementById('taxInfo');
+            
+            if (isTaxInclusive && total > 0) {
+                taxInfo.classList.remove('hidden');
+                // DPP = Total / 1.11, PPN = Total - DPP
+                const dpp = total / 1.11;
+                const ppn = total - dpp;
+                document.getElementById('lblDPP').innerText = formatRp(dpp);
+                document.getElementById('lblTax').innerText = formatRp(ppn);
+            } else {
+                taxInfo.classList.add('hidden');
+            }
+
+            document.getElementById('lblGrandTotal').innerText = formatRp(total);
+        }
+
+        function saveExpense() {
+            const date = document.getElementById('expenseDate').value;
+            let receiver = document.getElementById('expenseReceiver').value;
+            if(!receiver) receiver = "Pengeluaran Kas";
+            
+            if(!date) {
+                alert('Pilih tanggal terlebih dahulu.');
+                return;
+            }
+
+            const method = document.querySelector('input[name="payment_method"]:checked').value;
+            let source = "Bayar Nanti (Hutang)";
+            if (method === 'cash') {
+                source = document.getElementById('sourceAccount').value;
+            }
+
+            const grandTotalStr = document.getElementById('lblGrandTotal').innerText.replace(/[^\d]/g, '');
+            const total = parseInt(grandTotalStr) || 0;
+
+            const newId = `EXP/2026/05/${String(Math.floor(Math.random() * 999)).padStart(3, '0')}`;
+            
+            const newExp = {
+                id: newId,
+                date: date,
+                receiver: receiver,
+                source: source,
+                total: total
+            };
+
+            let expenses = JSON.parse(localStorage.getItem('vitta_expenses') || '[]');
+            expenses.unshift(newExp);
+            localStorage.setItem('vitta_expenses', JSON.stringify(expenses));
+
+            alert("Biaya berhasil dicatat dan jurnal otomatis telah terbentuk.");
+            
+            document.getElementById('expenseDate').value = '';
+            document.getElementById('expenseReceiver').value = '';
+            
+            renderTable();
+            toggleView('list');
+        }
+
+        const defaultExpenses = [
+            { id: 'EXP/2026/05/012', date: '2026-05-16', receiver: 'PLN & Telkom (Operasional)', source: 'Bank BCA', total: 2500000 },
+            { id: 'EXP/2026/05/011', date: '2026-05-10', receiver: 'Pembelian ATK Kantor', source: 'Kas Kecil', total: 450000 },
+            { id: 'EXP/2026/05/009', date: '2026-05-01', receiver: 'Sewa Gedung (Agustus)', source: 'Bayar Nanti (Hutang)', total: 15000000 }
+        ];
+
+        function renderTable() {
+            let expenses = JSON.parse(localStorage.getItem('vitta_expenses'));
+            if (!expenses) {
+                expenses = defaultExpenses;
+                localStorage.setItem('vitta_expenses', JSON.stringify(expenses));
+            }
+
+            const tbody = document.getElementById('expenseTableBody');
+            tbody.innerHTML = '';
+            
+            expenses.forEach(exp => {
+                let sourceBadge = '';
+                if(exp.source === 'Kas Kecil') sourceBadge = `<span class="bg-green-500/10 text-green-400 px-2 py-1 rounded text-xs">Kas Kecil</span>`;
+                else if(exp.source === 'Bank BCA') sourceBadge = `<span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs">Bank BCA</span>`;
+                else sourceBadge = `<span class="bg-orange-500/10 text-orange-400 px-2 py-1 rounded text-xs">Bayar Nanti (Hutang)</span>`;
+
+                tbody.innerHTML += `
+                <tr class="hover:bg-dark-700/30 transition-colors">
+                    <td class="px-6 py-4 font-medium text-white">${exp.id}</td>
+                    <td class="px-6 py-4">${exp.date}</td>
+                    <td class="px-6 py-4">${exp.receiver}</td>
+                    <td class="px-6 py-4">${sourceBadge}</td>
+                    <td class="px-6 py-4 text-right">${formatRp(exp.total)}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button class="text-blue-400 hover:text-blue-300">Lihat</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTable();
+        });
+    </script>
+</body>
+</html>

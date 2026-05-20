@@ -1,0 +1,158 @@
+/* ===================================
+   VITTA ERP - Global Styles
+   =================================== */
+
+/* Animations */
+@keyframes fadeInDown {
+    0% { opacity: 0; transform: translateY(-20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-down { animation: fadeInDown 0.8s ease-out forwards; }
+.animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+
+/* ===================================
+   FORM INPUTS - Dark Theme
+   Latar gelap lembut, teks terang,
+   border halus agar nyaman dibaca.
+   =================================== */
+
+/* Base Input / Select / Textarea */
+.vitta-input,
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="month"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+select,
+textarea {
+    width: 100%;
+    background-color: #1e293b;       /* slate-800: gelap lembut, BUKAN putih */
+    border: 1px solid #334155;       /* slate-700: border halus */
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #f1f5f9;                  /* slate-100: teks terang, mudah dibaca */
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Placeholder */
+input::placeholder,
+textarea::placeholder {
+    color: #64748b;                  /* slate-500: placeholder lembut */
+}
+
+/* Focus state */
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #3b82f6;           /* blue-500 */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+/* Focus state variant - Rose (Pembelian) */
+.focus-rose:focus {
+    border-color: #f43f5e !important;
+    box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.25) !important;
+}
+
+/* Focus state variant - Amber (Biaya) */
+.focus-amber:focus {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Focus state variant - Emerald (Kas & Bank) */
+.focus-emerald:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Focus state variant - Purple (Aset) */
+.focus-purple:focus {
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.25) !important;
+}
+
+/* Readonly inputs */
+input[readonly] {
+    background-color: #0f172a;       /* slate-900: lebih gelap */
+    color: #94a3b8;                  /* slate-400: teks redup */
+    cursor: not-allowed;
+}
+
+/* Select dropdown arrow fix for dark mode */
+select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5rem 1.5rem;
+    padding-right: 2.5rem;
+}
+
+/* Checkbox & Radio - Dark theme */
+input[type="checkbox"],
+input[type="radio"] {
+    width: 1rem;
+    height: 1rem;
+    background-color: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 0.25rem;
+    padding: 0;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+input[type="radio"] {
+    border-radius: 50%;
+}
+
+/* Date input calendar icon fix */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+    cursor: pointer;
+}
+
+/* ===================================
+   TABLE - Responsive mobile
+   =================================== */
+@media (max-width: 768px) {
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+    table {
+        font-size: 0.75rem;
+    }
+    th, td {
+        padding: 0.5rem 0.75rem !important;
+    }
+}
+
+/* ===================================
+   SCROLLBAR - Dark thin style
+   =================================== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #111827;
+}
+::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
+}
