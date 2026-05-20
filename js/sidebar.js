@@ -2,12 +2,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('sidebar-container');
     if (container) {
         // Embed the sidebar HTML directly to avoid CORS issues on file:// protocol
-        const sidebarHTML = `
+        <style>
+            /* Smooth transitions for sidebar width */
+            #mainSidebar { transition: width 0.3s ease-in-out, transform 0.3s ease-in-out; }
+            #mainSidebar.sidebar-mini { width: 5rem; }
+            #mainSidebar.sidebar-mini .sidebar-text { display: none; }
+            #mainSidebar.sidebar-mini .sidebar-header { justify-content: center; padding: 1rem 0; }
+            #mainSidebar.sidebar-mini .user-info-container { flex-direction: column; text-align: center; }
+            #mainSidebar.sidebar-mini .user-initial-container { margin-right: 0; margin-bottom: 0.5rem; }
+            #mainSidebar.sidebar-mini .menu-link { justify-content: center; padding-left: 0; padding-right: 0; }
+            #mainSidebar.sidebar-mini .menu-icon { margin-right: 0; }
+            #mainSidebar.sidebar-mini #toggleDesktopSidebar { transform: rotate(180deg); }
+        </style>
         <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity backdrop-blur-sm cursor-pointer" onclick="toggleSidebar()"></div>
-        <div class="fixed inset-y-0 left-0 z-50 w-64 bg-dark-800 border-r border-dark-700 h-screen flex flex-col transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out" id="mainSidebar">
-            <div class="p-4 flex items-center justify-between border-b border-dark-700">
+        <div class="fixed inset-y-0 left-0 z-50 w-64 bg-dark-800 border-r border-dark-700 h-screen flex flex-col transform -translate-x-full lg:relative lg:translate-x-0" id="mainSidebar">
+            <div class="p-4 flex items-center justify-between border-b border-dark-700 sidebar-header relative">
                 <a href="../index.html" class="flex items-center space-x-2 text-white font-bold text-xl hover:text-blue-400 transition-colors">
-                    <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-8 h-8 text-blue-500 menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                     <span class="sidebar-text">Tata Kelola One</span>
@@ -18,28 +29,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     </svg>
                 </button>
             </div>
+            
+            <!-- Desktop Collapse Toggle -->
+            <button onclick="toggleDesktopSidebar()" id="toggleDesktopSidebar" class="hidden lg:flex absolute -right-3 top-6 bg-dark-700 border border-dark-600 rounded-full p-1 text-gray-400 hover:text-white hover:bg-dark-600 z-50 transition-transform">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+
             <div class="flex-1 overflow-y-auto py-4">
                 <nav class="space-y-1 px-2" id="sidebarMenu">
                     <!-- Dynamic menu items will be injected here by sidebar.js -->
                 </nav>
             </div>
             
-            <div class="px-4 py-3 border-t border-dark-700 flex items-center justify-between">
-                <span class="text-gray-400 text-xs sidebar-text">Tampilkan "Kembali ke Index"</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="toggleBackToIndex" class="sr-only peer" checked>
-                    <div class="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-                </label>
+            <div class="px-4 py-3 border-t border-dark-700 flex flex-col items-center justify-between sidebar-text">
+                <div class="flex items-center justify-between w-full">
+                    <span class="text-gray-400 text-xs">Tampilkan "Kembali"</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleBackToIndex" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                    </label>
+                </div>
             </div>
-            <div class="p-4 border-t border-dark-700">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 font-bold" id="sidebarUserInitial">
+            <div class="p-4 border-t border-dark-700 user-info-container flex items-center justify-center">
+                <div class="flex items-center user-info-container">
+                    <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 font-bold user-initial-container" id="sidebarUserInitial">
                         U
                     </div>
-                    <div class="ml-3 sidebar-text text-sm">
-                        <p class="text-white font-medium" id="sidebarUserName">User</p>
-                        <p class="text-blue-400 text-xs font-semibold" id="sidebarUserRole">-</p>
-                        <p class="text-gray-400 text-xs" id="sidebarUserDept">-</p>
+                    <div class="ml-3 sidebar-text text-sm text-left">
+                        <p class="text-white font-medium truncate w-32" id="sidebarUserName">User</p>
+                        <p class="text-blue-400 text-xs font-semibold truncate w-32" id="sidebarUserRole">-</p>
+                        <p class="text-gray-400 text-xs truncate w-32" id="sidebarUserDept">-</p>
                     </div>
                 </div>
             </div>
@@ -156,8 +177,8 @@ function initializeMenu() {
         const extraClasses = item.isBackToIndex ? 'back-to-index-menu border-b border-dark-700 mb-2 pb-2' : '';
         
         html += `
-            <a href="${item.url}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md ${activeClass} transition-colors ${extraClasses}">
-                <svg class="mr-3 flex-shrink-0 h-6 w-6 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <a href="${item.url}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md ${activeClass} transition-colors ${extraClasses} menu-link relative" title="${item.name}">
+                <svg class="mr-3 flex-shrink-0 h-6 w-6 menu-icon ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path>
                 </svg>
                 <span class="sidebar-text truncate">${item.name}</span>
@@ -188,4 +209,23 @@ window.toggleSidebar = function() {
             overlay.classList.add('hidden');
         }
     }
+// Global function to toggle sidebar on desktop (mini/large mode)
+window.toggleDesktopSidebar = function() {
+    const sidebar = document.getElementById('mainSidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('sidebar-mini');
+        const isMini = sidebar.classList.contains('sidebar-mini');
+        localStorage.setItem('vitta_sidebar_mini', isMini ? 'true' : 'false');
+    }
 };
+
+// Apply saved sidebar state
+document.addEventListener('DOMContentLoaded', () => {
+    const isMini = localStorage.getItem('vitta_sidebar_mini') === 'true';
+    if (isMini) {
+        const sidebar = document.getElementById('mainSidebar');
+        if (sidebar) {
+            sidebar.classList.add('sidebar-mini');
+        }
+    }
+});
