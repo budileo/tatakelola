@@ -189,7 +189,9 @@
         // Reset form
         form.reset();
         document.getElementById('formTitle').textContent = id ? 'Edit Produk' : 'Tambah Produk Baru';
-        document.getElementById('fSKU').value = id ? '' : 'AUTO';
+        const skuInput = document.getElementById('fSKU');
+        skuInput.value = id ? '' : P.generateSKU();
+        skuInput.readOnly = false; // User bisa ubah SKU
         document.getElementById('wholesaleRows').innerHTML = '';
         document.getElementById('imagePreview').innerHTML = '';
         document.getElementById('formErrors').innerHTML = '';
@@ -246,8 +248,18 @@
             // Toggle sections visibility
             updateToggleSections();
         } else {
-            // Defaults for new product
+            // ── Defaults for new product ──
             document.getElementById('toggleSell').checked = true;
+
+            // Auto-select default COA accounts
+            document.getElementById('fRevenueAccount').value = '4-40000';   // Pendapatan
+            document.getElementById('fCOGSAccount').value = '5-50000';      // Beban Pokok Pendapatan
+            document.getElementById('fInventoryAccount').value = '1-10200'; // Persediaan Barang
+
+            // Auto-select default tax (PPN 11%)
+            document.getElementById('fSellTax').value = 'PPN 11%';
+            document.getElementById('fBuyTax').value = 'PPN 11%';
+
             updateToggleSections();
         }
 
@@ -469,6 +481,9 @@
             data.sku = document.getElementById('fSKU').value;
             result = P.updateProduct(currentEditId, data);
         } else {
+            // Pass custom SKU jika user mengubahnya
+            const skuVal = document.getElementById('fSKU').value.trim();
+            if (skuVal) data.custom_sku = skuVal;
             result = P.createProduct(data);
         }
 

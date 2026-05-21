@@ -155,7 +155,7 @@
     /** Create a new product */
     function createProduct(data) {
         const user = window.VITTA_USER || {};
-        const sku = generateSKU();
+        const sku = data.custom_sku && data.custom_sku.trim() !== '' ? data.custom_sku.trim() : generateSKU();
         data.sku = sku;
 
         const errors = validateProduct(data, false, null);
