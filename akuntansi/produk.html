@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Produk - Vitta ERP</title>
+    <meta name="description" content="Kelola data master produk untuk seluruh modul transaksi: penjualan, pembelian, stok, dan laporan keuangan.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { dark: { 900: '#111827', 800: '#1f2937', 700: '#374151', 600: '#4b5563' }, primary: '#3b82f6', accent: '#8b5cf6' }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* Toggle Switch Custom */
+        .toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute; cursor: pointer; inset: 0;
+            background: #374151; border-radius: 24px; transition: all 0.3s;
+        }
+        .toggle-slider::before {
+            content: ''; position: absolute; width: 18px; height: 18px;
+            left: 3px; bottom: 3px; background: white;
+            border-radius: 50%; transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .toggle-switch input:checked + .toggle-slider { background: #3b82f6; }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+        /* Conditional sections */
+        #sectionBuy, #sectionSell, #sectionTrack {
+            max-height: 0; opacity: 0; overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease;
+        }
+
+        /* Hover glow on table rows */
+        .product-table tbody tr:hover { background: rgba(55, 65, 81, 0.3); }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex">
+
+    <div id="sidebar-container" class="shrink-0"></div>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden bg-dark-900">
+        <!-- Header -->
+        <header class="bg-dark-800 border-b border-dark-700 p-4 md:p-6 flex justify-between items-center shrink-0 sticky top-0 z-10">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="mr-4 text-gray-400 hover:text-white lg:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Master Produk</h1>
+                    <p class="text-xs md:text-sm text-gray-400 hidden md:block">Pusat data produk untuk seluruh transaksi bisnis</p>
+                </div>
+            </div>
+            <div>
+                <button onclick="openForm()" id="btnAddProduct" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg shadow-blue-500/20 flex items-center text-sm hover:shadow-blue-500/40 hover:-translate-y-0.5">
+                    <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Tambah Produk
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 md:p-6">
+
+<!-- ==================== VIEW: LIST ==================== -->
+<div id="viewList" class="max-w-7xl mx-auto space-y-6">
+    <!-- Stats Cards -->
+    <div id="statsCards" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Rendered by JS -->
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-col md:flex-row gap-3 bg-dark-800 p-4 rounded-xl border border-dark-700 items-end">
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1">Cari Produk</label>
+                <div class="relative">
+                    <svg class="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="fSearchProduct" placeholder="Nama, SKU, deskripsi..." class="w-full pl-10">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1">Kategori</label>
+                <select id="fCategoryFilter" class="w-full">
+                    <option value="">Semua Kategori</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Table -->
+    <div class="bg-dark-800 border border-dark-700 rounded-xl overflow-hidden shadow-sm product-table">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-300">
+                <thead class="bg-dark-700/50 text-gray-400 border-b border-dark-700 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3 w-14"></th>
+                        <th class="px-4 py-3 font-semibold">SKU</th>
+                        <th class="px-4 py-3 font-semibold">Nama Produk</th>
+                        <th class="px-4 py-3 font-semibold">Kategori</th>
+                        <th class="px-4 py-3 font-semibold text-right">Harga Beli</th>
+                        <th class="px-4 py-3 font-semibold text-right">Harga Jual</th>
+                        <th class="px-4 py-3 font-semibold text-center">Stok</th>
+                        <th class="px-4 py-3 font-semibold text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyProducts" class="divide-y divide-dark-700">
+                    <!-- Rendered by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== VIEW: FORM ==================== -->
+<div id="viewForm" class="hidden max-w-4xl mx-auto">
+    <button onclick="showView('list')" class="text-gray-400 hover:text-white flex items-center mb-4 text-sm transition-colors">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Kembali ke Daftar
+    </button>
+
+    <div class="bg-dark-800 border border-dark-700 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-5 border-b border-dark-700 bg-gradient-to-r from-dark-800 to-dark-800/50">
+            <h2 id="formTitle" class="text-lg font-bold text-white">Tambah Produk Baru</h2>
+            <p class="text-xs text-gray-500 mt-1">Field dengan tanda * wajib diisi</p>
+        </div>
+
+        <!-- Errors -->
+        <div id="formErrors" class="hidden mx-5 mt-5 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4"></div>
+
+        <form id="productForm" onsubmit="event.preventDefault(); saveProduct();">
+            <input type="hidden" id="fImageData" value="">
+
+            <div class="p-5 space-y-6">
+
+                <!-- ═══ SECTION: Informasi Utama ═══ -->
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4 flex items-center border-b border-dark-700 pb-2">
+                        <svg class="w-4 h-4 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Informasi Utama
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Nama Produk <span class="text-rose-400">*</span></label>
+                            <input type="text" id="fName" class="w-full" placeholder="Masukkan nama produk" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Kategori</label>
+                            <div class="flex gap-2">
+                                <select id="fCategory" class="flex-1"></select>
+                                <button type="button" onclick="showAddCategoryModal()" class="px-3 py-2 bg-dark-700 hover:bg-dark-600 rounded-lg text-gray-300 text-xs transition-colors whitespace-nowrap border border-dark-600" title="Tambah Kategori">+ Baru</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Kode/SKU</label>
+                            <input type="text" id="fSKU" class="w-full" value="AUTO" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Satuan</label>
+                            <select id="fUnit" class="w-full">
+                                <option value="pcs">Pcs</option>
+                                <option value="kg">Kg</option>
+                                <option value="gram">Gram</option>
+                                <option value="liter">Liter</option>
+                                <option value="ml">mL</option>
+                                <option value="meter">Meter</option>
+                                <option value="box">Box</option>
+                                <option value="pack">Pack</option>
+                                <option value="lusin">Lusin</option>
+                                <option value="rim">Rim</option>
+                                <option value="roll">Roll</option>
+                                <option value="set">Set</option>
+                                <option value="unit">Unit</option>
+                                <option value="lembar">Lembar</option>
+                                <option value="botol">Botol</option>
+                                <option value="kaleng">Kaleng</option>
+                                <option value="karung">Karung</option>
+                                <option value="pasang">Pasang</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-400 mb-1">Deskripsi</label>
+                            <textarea id="fDescription" class="w-full h-20" placeholder="Deskripsi produk (opsional)"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Image Upload -->
+                    <div class="mt-4">
+                        <label class="block text-xs font-medium text-gray-400 mb-2">Gambar Produk</label>
+                        <div class="flex items-start gap-4">
+                            <div id="imagePreview"></div>
+                            <label class="cursor-pointer bg-dark-700 hover:bg-dark-600 border border-dark-600 border-dashed rounded-xl p-4 flex flex-col items-center transition-colors">
+                                <svg class="w-8 h-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <span class="text-xs text-gray-500">Upload Gambar</span>
+                                <span class="text-[10px] text-gray-600 mt-1">Maks 2MB, JPG/PNG</span>
+                                <input type="file" id="fImageUpload" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="handleImageUpload(this)">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ SECTION: Mode Produk ═══ -->
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4 flex items-center border-b border-dark-700 pb-2">
+                        <svg class="w-4 h-4 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Mode Produk
+                    </h3>
+
+                    <!-- Toggle: Saya membeli -->
+                    <div class="bg-dark-900/50 rounded-xl p-4 border border-dark-700 mb-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-purple-500/10 rounded-lg mr-3">
+                                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-white">Saya membeli item ini</p>
+                                    <p class="text-xs text-gray-500">Aktifkan untuk transaksi pembelian</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggleBuy" onchange="updateToggleSections()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div id="sectionBuy" class="mt-4 space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Harga Beli Default</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">Rp</span>
+                                        <input type="number" id="fBuyPrice" class="w-full pl-10" min="0" placeholder="0">
+                                    </div>
+                                </div>
+                                <div id="rowCOGS">
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Akun HPP/Pembelian <span class="text-rose-400">*</span></label>
+                                    <select id="fCOGSAccount" class="w-full"></select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Pajak Pembelian</label>
+                                <select id="fBuyTax" class="w-full md:w-1/2">
+                                    <option value="">Tidak ada pajak</option>
+                                    <option value="PPN 11%">PPN 11%</option>
+                                    <option value="PPh 22 (1.5%)">PPh 22 (1.5%)</option>
+                                    <option value="PPh 23 (2%)">PPh 23 (2%)</option>
+                                    <option value="Bebas Pajak">Bebas Pajak</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toggle: Saya menjual -->
+                    <div class="bg-dark-900/50 rounded-xl p-4 border border-dark-700 mb-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-emerald-500/10 rounded-lg mr-3">
+                                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-white">Saya menjual item ini</p>
+                                    <p class="text-xs text-gray-500">Aktifkan untuk transaksi penjualan</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggleSell" onchange="updateToggleSections()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div id="sectionSell" class="mt-4 space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Harga Jual Default</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">Rp</span>
+                                        <input type="number" id="fSellPrice" class="w-full pl-10" min="0" placeholder="0">
+                                    </div>
+                                </div>
+                                <div id="rowRevenue">
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Akun Penjualan <span class="text-rose-400">*</span></label>
+                                    <select id="fRevenueAccount" class="w-full"></select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Pajak Penjualan</label>
+                                <select id="fSellTax" class="w-full md:w-1/2">
+                                    <option value="">Tidak ada pajak</option>
+                                    <option value="PPN 11%">PPN 11%</option>
+                                    <option value="PPh 21 (2.5%)">PPh 21 (2.5%)</option>
+                                    <option value="PPh 23 (2%)">PPh 23 (2%)</option>
+                                    <option value="Bebas Pajak">Bebas Pajak</option>
+                                </select>
+                            </div>
+
+                            <!-- Harga Grosir -->
+                            <div class="border-t border-dark-700 pt-3">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-medium text-gray-400">Harga Grosir (Multi-Level)</label>
+                                    <button type="button" onclick="addWholesaleRow()" class="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center transition-colors">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        Tambah Level
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-12 gap-2 text-[10px] text-gray-500 uppercase tracking-wider mb-1 px-1">
+                                    <div class="col-span-3">Min Qty</div>
+                                    <div class="col-span-4">Harga / Unit</div>
+                                    <div class="col-span-4">Label</div>
+                                    <div class="col-span-1"></div>
+                                </div>
+                                <div id="wholesaleRows" class="space-y-2">
+                                    <!-- Dynamic rows -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toggle: Lacak Inventory -->
+                    <div class="bg-dark-900/50 rounded-xl p-4 border border-dark-700">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-blue-500/10 rounded-lg mr-3">
+                                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-white">Saya melacak inventory item ini</p>
+                                    <p class="text-xs text-gray-500">Aktifkan sistem stok & pergerakan otomatis</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggleTrack" onchange="updateToggleSections()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div id="sectionTrack" class="mt-4 space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div id="rowInventory">
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Akun Persediaan <span class="text-rose-400">*</span></label>
+                                    <select id="fInventoryAccount" class="w-full"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Stok Awal</label>
+                                    <input type="number" id="fInitialStock" class="w-full" min="0" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Stok Minimal</label>
+                                    <input type="number" id="fMinStock" class="w-full" min="0" placeholder="0">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-2">Metode Perhitungan Stok</label>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center cursor-pointer bg-dark-800 px-4 py-2.5 rounded-lg border border-dark-600 hover:border-blue-500/50 transition-colors">
+                                        <input type="radio" name="stockMethod" id="fStockMethodFIFO" value="FIFO" checked class="mr-2 accent-blue-500">
+                                        <div>
+                                            <span class="text-sm text-white font-medium">FIFO</span>
+                                            <p class="text-[10px] text-gray-500">First In, First Out</p>
+                                        </div>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer bg-dark-800 px-4 py-2.5 rounded-lg border border-dark-600 hover:border-blue-500/50 transition-colors">
+                                        <input type="radio" name="stockMethod" id="fStockMethodAvg" value="AVERAGE" class="mr-2 accent-blue-500">
+                                        <div>
+                                            <span class="text-sm text-white font-medium">Average</span>
+                                            <p class="text-[10px] text-gray-500">Rata-rata tertimbang</p>
+                                        </div>
+                                    </label>
+                                </div>
+                                <!-- Hidden select for value binding -->
+                                <select id="fStockMethod" class="hidden">
+                                    <option value="FIFO" selected>FIFO</option>
+                                    <option value="AVERAGE">Average</option>
+                                </select>
+                            </div>
+                            <!-- Info box -->
+                            <div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg flex items-start">
+                                <svg class="w-4 h-4 text-blue-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <p class="text-xs text-blue-400/80">Stok akan otomatis bertambah saat pembelian, berkurang saat penjualan, dan disesuaikan saat retur. Semua pergerakan tercatat di stock ledger.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Form Footer -->
+            <div class="p-5 border-t border-dark-700 flex justify-between items-center bg-dark-800/50">
+                <button type="button" onclick="showView('list')" class="px-4 py-2 rounded-lg text-sm text-gray-300 hover:bg-dark-700 transition-colors">Batal</button>
+                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-all duration-200 shadow-lg shadow-blue-500/20 flex items-center hover:shadow-blue-500/40">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Simpan Produk
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== VIEW: DETAIL ==================== -->
+<div id="viewDetail" class="hidden max-w-5xl mx-auto">
+    <button onclick="showView('list')" class="text-gray-400 hover:text-white flex items-center mb-4 text-sm transition-colors">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Kembali ke Daftar
+    </button>
+    <div id="detailContent">
+        <!-- Rendered by JS -->
+    </div>
+</div>
+
+        </main>
+    </div>
+
+    <!-- Scripts (order matters) -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/coa-engine.js"></script>
+    <script src="../js/produk-engine.js"></script>
+    <script src="../js/produk-ui.js"></script>
+    <script src="../js/theme.js"></script>
+    <script>
+        // Sync radio buttons with hidden select for stockMethod
+        document.querySelectorAll('input[name="stockMethod"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.getElementById('fStockMethod').value = this.value;
+            });
+        });
+    </script>
+</body>
+</html>
