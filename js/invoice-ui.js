@@ -101,21 +101,30 @@ function calcDueDate() {
 // ========== ITEM ROWS ==========
 function addItemRow() {
     const tbody = document.getElementById('itemsBody');
-    const prodOpts = DB.products.map(p => `<option value="${p.id}" data-price="${p.price}" data-unit="${p.unit}">${p.name}</option>`).join('');
+    let prodOpts = '';
+    if (window.VittaProduk) {
+        const activeProds = window.VittaProduk.getActiveProducts().filter(p => p.is_sold);
+        prodOpts = activeProds.map(p => `<option value="${p.id}" data-price="${p.sell_price}" data-unit="${p.unit}" data-stock="${p.is_tracked ? p.current_stock : ''}" data-tracked="${p.is_tracked}">${p.name}</option>`).join('');
+    } else {
+        prodOpts = DB.products.map(p => `<option value="${p.id}" data-price="${p.price}" data-unit="${p.unit}" data-stock="" data-tracked="false">${p.name}</option>`).join('');
+    }
     const taxOpts = DB.taxOptions.map(t => `<option value="${t.id}" data-rate="${t.rate}">${t.label}</option>`).join('');
     const tr = document.createElement('tr');
     tr.className = 'item-row';
     tr.innerHTML = `
-        <td class="py-1 pr-1"><select class="w-full text-xs py-1 iProd" onchange="onProdChange(this)">${'<option value="">-- Pilih --</option>'+prodOpts}</select></td>
-        <td class="py-1 pr-1"><input type="text" class="w-full text-xs py-1 iDesc" placeholder="Opsional"></td>
-        <td class="py-1 pr-1"><input type="number" class="w-full text-xs py-1 iQty text-center" value="1" min="1" oninput="calcTotals()"></td>
-        <td class="py-1 pr-1"><input type="text" class="w-full text-xs py-1 iUnit text-center" value="Pcs" readonly></td>
-        <td class="py-1 pr-1"><input type="number" class="w-full text-xs py-1 iPrice text-right" value="0" oninput="calcTotals()"></td>
-        <td class="py-1 pr-1"><input type="number" class="w-full text-xs py-1 iDisc text-right" value="0" oninput="calcTotals()"></td>
-        <td class="py-1 pr-1"><select class="w-10 text-xs py-1 iDiscType" onchange="calcTotals()"><option value="rp">Rp</option><option value="%">%</option></select></td>
-        <td class="py-1 pr-1"><select class="w-full text-xs py-1 iTax" onchange="calcTotals()">${taxOpts}</select></td>
-        <td class="py-1 pr-1 text-right"><span class="iLineTotal text-white font-medium text-xs">Rp 0</span></td>
-        <td class="py-1 text-center"><button onclick="removeItemRow(this)" class="text-gray-600 hover:text-rose-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></td>`;
+        <td class="py-1 pr-1 align-top">
+            <select class="w-full text-xs py-1 iProd" onchange="onProdChange(this)">${'<option value="">-- Pilih --</option>'+prodOpts}</select>
+            <div class="text-[10px] text-gray-500 mt-0.5 iStockInfo hidden"></div>
+        </td>
+        <td class="py-1 pr-1 align-top"><input type="text" class="w-full text-xs py-1 iDesc" placeholder="Opsional"></td>
+        <td class="py-1 pr-1 align-top"><input type="number" class="w-full text-xs py-1 iQty text-center" value="1" min="1" oninput="calcTotals()"></td>
+        <td class="py-1 pr-1 align-top"><input type="text" class="w-full text-xs py-1 iUnit text-center" value="Pcs" readonly></td>
+        <td class="py-1 pr-1 align-top"><input type="number" class="w-full text-xs py-1 iPrice text-right" value="0" oninput="calcTotals()"></td>
+        <td class="py-1 pr-1 align-top"><input type="number" class="w-full text-xs py-1 iDisc text-right" value="0" oninput="calcTotals()"></td>
+        <td class="py-1 pr-1 align-top"><select class="w-10 text-xs py-1 iDiscType" onchange="calcTotals()"><option value="rp">Rp</option><option value="%">%</option></select></td>
+        <td class="py-1 pr-1 align-top"><select class="w-full text-xs py-1 iTax" onchange="calcTotals()">${taxOpts}</select></td>
+        <td class="py-1 pr-1 text-right align-top"><span class="iLineTotal text-white font-medium text-xs mt-1 block">Rp 0</span></td>
+        <td class="py-1 text-center align-top"><button onclick="removeItemRow(this)" class="text-gray-600 hover:text-rose-500 mt-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></td>`;
     tbody.appendChild(tr);
 }
 
@@ -129,6 +138,25 @@ function onProdChange(sel) {
     const opt = sel.options[sel.selectedIndex];
     row.querySelector('.iPrice').value = opt.dataset.price || 0;
     row.querySelector('.iUnit').value = opt.dataset.unit || 'Pcs';
+
+    const stockInfo = row.querySelector('.iStockInfo');
+    if (stockInfo) {
+        if (opt.dataset.tracked === 'true') {
+            const stock = parseFloat(opt.dataset.stock) || 0;
+            stockInfo.textContent = `Stok: ${stock} ${opt.dataset.unit || ''}`;
+            stockInfo.classList.remove('hidden');
+            if (stock <= 0) {
+                stockInfo.classList.add('text-rose-400');
+                stockInfo.classList.remove('text-gray-500');
+            } else {
+                stockInfo.classList.remove('text-rose-400');
+                stockInfo.classList.add('text-gray-500');
+            }
+        } else {
+            stockInfo.classList.add('hidden');
+        }
+    }
+
     calcTotals();
 }
 
