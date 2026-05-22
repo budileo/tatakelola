@@ -204,9 +204,9 @@ function getAccountName(code) {
     return acc ? acc.name : code;
 }
 
-const formatRp = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-const formatDate = (d) => {
+var formatRp = formatRp || ((angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka));
+var formatDate = formatDate || ((d) => {
     if (!d) return '-';
     const dt = new Date(d);
     return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+});

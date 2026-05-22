@@ -58,14 +58,14 @@ const KEYS = {
 };
 
 // ========== HELPERS ==========
-const formatRp = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
-const formatDate = (d) => {
+var formatRp = formatRp || ((n) => 'Rp ' + Math.round(n).toLocaleString('id-ID'));
+var formatDate = formatDate || ((d) => {
     if (!d) return '-';
     const dt = new Date(d);
     return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-const today = () => new Date().toISOString().split('T')[0];
-const now = () => new Date().toISOString();
+});
+var today = today || (() => new Date().toISOString().split('T')[0]);
+var now = now || (() => new Date().toISOString());
 
 // Fungsi untuk mendapatkan Key khusus Departemen (Isolasi Data)
 function getScopedKey(baseKey) {
