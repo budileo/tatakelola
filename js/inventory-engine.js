@@ -127,10 +127,14 @@ function recordStockMovement(data) {
         product_id: data.product_id,
         warehouse_id: data.warehouse_id,
         tipe: data.tipe,
+        type: data.type_original || (data.tipe === 'in' ? 'PURCHASE' : data.tipe === 'out' ? 'SALE' : 'ADJUSTMENT'), // fallback for UI
         qty: data.qty,
+        stock_before: oldQty,
+        stock_after: invItem.qty,
         hpp: data.tipe === 'in' ? data.hpp : invItem.hpp,
-        reference_id: data.reference_id || '',
+        reference_no: data.reference_id || '',
         memo: data.memo || '',
+        created_by: data.created_by || 'system',
         created_at: data.date || new Date().toISOString()
     };
     movs.unshift(movement);

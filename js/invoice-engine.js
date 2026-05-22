@@ -208,6 +208,34 @@ function saveInvoice(invData) {
         jLines.push({ account: pendapatanCode, accountName: pendapatanName, debit: 0, credit: extraPendapatan });
     }
 
+    // === PROCESS STOCK MOVEMENT & COGS JOURNAL ===
+    let totalCOGS = 0;
+    if (window.VittaProduk) {
+        invData.items.forEach(item => {
+            if (item.productId) {
+                const prod = window.VittaProduk.getProductById(item.productId);
+                if (prod && prod.is_tracked) {
+                    // Record Stock Movement
+                    const moveRes = window.VittaProduk.processStockMovement(item.productId, 'SALE', item.qty, invData.id, item.price, `Penjualan Invoice ${invData.id}`);
+                    
+                    // Accumulate COGS (using product's buy_price as HPP approx, or if VittaInventory gives hpp we could use it)
+                    // For simplicity, we use prod.buy_price as HPP
+                    totalCOGS += (prod.buy_price || 0) * item.qty;
+                }
+            }
+        });
+    }
+
+    // COGS & Inventory Journal
+    if (totalCOGS > 0) {
+        const cogsCode = '5-50000'; // Default Beban Pokok Pendapatan
+        const cogsName = 'Beban Pokok Pendapatan';
+        const invCode = '1-10200'; // Default Persediaan
+        const invName = 'Persediaan Barang Dagang';
+        jLines.push({ account: cogsCode, accountName: cogsName, debit: totalCOGS, credit: 0 });
+        jLines.push({ account: invCode, accountName: invName, debit: 0, credit: totalCOGS });
+    }
+
     // Validasi keseimbangan internal (harus match dengan grandTotal)
     createJournalEntry(invData.date, `Invoice Penjualan ${invData.id} - ${invData.customerName}`, jLines, invData.id);
 

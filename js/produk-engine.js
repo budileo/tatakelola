@@ -322,6 +322,11 @@
     // ─── STOCK LEDGER ────────────────────────────────────────
 
     function getStockLedger(productId) {
+        if (window.VittaInventory) {
+            const movs = window.VittaInventory.getStockMovements();
+            if (productId) return movs.filter(m => m.product_id === productId);
+            return movs;
+        }
         try {
             const all = JSON.parse(localStorage.getItem(STOCK_LEDGER_KEY)) || [];
             if (productId) return all.filter(s => s.product_id === productId);
@@ -377,6 +382,7 @@
                     product_id: productId,
                     warehouse_id: mainWhId,
                     tipe: mappedType,
+                    type_original: type,
                     qty: signedQty,
                     hpp: unitCost || product.buy_price,
                     reference_id: refNo,

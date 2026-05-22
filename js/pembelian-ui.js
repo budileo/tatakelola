@@ -1,3 +1,11 @@
+// ========== HELPERS ==========
+const formatRp = (num) => 'Rp ' + Math.round(num || 0).toLocaleString('id-ID');
+const formatDate = (d) => {
+    if (!d) return '-';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
 // ========== VIEW NAVIGATION ==========
 function toggleView(view) {
     if (view === 'form') {
@@ -47,7 +55,7 @@ function renderTable() {
         </td>
         <td class="px-6 py-4 text-center">${getBadge(pur.status)}</td>
         <td class="px-6 py-4 text-center">
-            <button class="text-blue-400 hover:text-blue-300">Lihat</button>
+            <button onclick="viewPurchase('${pur.id}')" class="text-blue-400 hover:text-blue-300">Lihat</button>
         </td>
     </tr>`).join('');
 }
@@ -239,14 +247,89 @@ function savePurchase() {
         totalPPN: parseInt(taxStr) || 0,
         potongan: parseFloat(document.getElementById('globalDisc').value) || 0,
         dp: parseFloat(document.getElementById('downPayment').value) || 0,
-        dpAccount: '', // TODO: let user choose bank
+        dpAccount: '', // Default kas/bank bisa di set ke Kas Kecil (1-10001) kalau butuh
         grandTotal: parseInt(grandTotalStr) || 0
     };
+    if (purData.dp > 0) {
+        purData.dpAccount = '1-10001'; // Default ke kas kecil utk DP.
+    }
 
     try {
         window.VittaPurchase.savePurchase(purData);
         alert('Pembelian berhasil disimpan!');
         toggleView('list');
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+// ========== MODAL LOGIC ==========
+let currentPurId = null;
+
+function viewPurchase(id) {
+    if (!window.VittaPurchase) return;
+    const purchases = window.VittaPurchase.getPurchases();
+    const pur = purchases.find(p => p.id === id);
+    if (!pur) return;
+
+    currentPurId = id;
+    document.getElementById('modalPurId').innerText = pur.id;
+    document.getElementById('modalPurSupplier').innerText = pur.supplierName;
+    document.getElementById('modalPurDate').innerText = formatDate(pur.date);
+    document.getElementById('modalPurTotal').innerText = formatRp(pur.grandTotal);
+    document.getElementById('modalPurSisa').innerText = formatRp(pur.sisaHutang);
+
+    const tbody = document.getElementById('modalPurItems');
+    tbody.innerHTML = pur.items.map(it => `
+        <tr>
+            <td class="py-2">${it.productName}</td>
+            <td class="py-2 text-center">${it.qty}</td>
+            <td class="py-2 text-right">${formatRp(it.price)}</td>
+        </tr>
+    `).join('');
+
+    const paySection = document.getElementById('modalPaySection');
+    if (pur.sisaHutang > 0) {
+        paySection.classList.remove('hidden');
+        document.getElementById('modalPayAmount').value = pur.sisaHutang;
+        
+        // Load Kas Bank for Payment
+        const sourceSelect = document.getElementById('modalPayAccount');
+        if (window.VittaCOA) {
+            const banks = window.VittaCOA.getAccounts().filter(a => a.category === 'Kas & Bank');
+            sourceSelect.innerHTML = banks.map(b => `<option value="${b.code}" data-name="${b.name}">${b.name} (${b.code})</option>`).join('');
+        }
+    } else {
+        paySection.classList.add('hidden');
+    }
+
+    document.getElementById('modalPurchase').classList.remove('hidden');
+    document.getElementById('modalPurchase').classList.add('flex');
+}
+
+function closeModalPurchase() {
+    document.getElementById('modalPurchase').classList.add('hidden');
+    document.getElementById('modalPurchase').classList.remove('flex');
+    currentPurId = null;
+}
+
+function submitPayment() {
+    if (!currentPurId) return;
+    const amount = parseFloat(document.getElementById('modalPayAmount').value) || 0;
+    if (amount <= 0) {
+        alert('Nominal bayar harus lebih dari 0');
+        return;
+    }
+
+    const sel = document.getElementById('modalPayAccount');
+    const accountCode = sel.value;
+    const accountName = sel.options[sel.selectedIndex]?.text.split(' (')[0] || 'Kas';
+
+    try {
+        window.VittaPurchase.recordPurchasePayment(currentPurId, { amount: amount, bankCode: accountCode, bankName: accountName, date: new Date().toISOString().split('T')[0] });
+        alert('Pembayaran hutang berhasil dicatat!');
+        closeModalPurchase();
+        renderTable();
     } catch (e) {
         alert(e.message);
     }

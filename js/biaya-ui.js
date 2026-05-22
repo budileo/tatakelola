@@ -1,3 +1,12 @@
+// ========== HELPERS ==========
+const formatRp = (num) => 'Rp ' + Math.round(num || 0).toLocaleString('id-ID');
+const formatDate = (d) => {
+    if (!d) return '-';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+var today = () => new Date().toISOString().split('T')[0];
+
 function toggleView(view) {
     if (view === 'form') {
         document.getElementById('listView').classList.add('hidden');
@@ -31,10 +40,24 @@ function initForm() {
         sourceSelect.innerHTML = banks.map(b => `<option value="${b.code}" data-name="${b.name}">${b.name} (${b.code})</option>`).join('');
     }
     
+    // Load Contacts for Receiver
+    const recSelect = document.getElementById('expenseReceiver');
+    let contactsList = [];
+    const localContacts = localStorage.getItem('vitta_contacts');
+    if(localContacts) {
+        try {
+            contactsList = JSON.parse(localContacts);
+        } catch(e) {}
+    }
+    recSelect.innerHTML = '<option value="">-- Pilih Penerima (Kontak) --</option>' + contactsList.map(c => {
+        const name = (c.sapaan ? c.sapaan + ' ' : '') + c.nama;
+        return `<option value="${name}">${name}</option>`;
+    }).join('');
+
     // Load Expense Accounts for Item Row
     let expOptions = '';
     if (window.VittaCOA) {
-        const exps = window.VittaCOA.getAccounts().filter(a => a.category === 'Beban Operasional' || a.category === 'Beban Lainnya');
+        const exps = window.VittaCOA.getAccounts().filter(a => a.category === 'Beban' || a.category === 'Beban Lainnya' || a.category === 'Beban Operasional');
         expOptions = exps.map(b => `<option value="${b.code}" data-name="${b.name}">${b.code} - ${b.name}</option>`).join('');
     }
     window._EXP_ACCOUNTS = expOptions;
@@ -119,7 +142,7 @@ function calculateTotal() {
 function saveExpense() {
     const date = document.getElementById('expenseDate').value;
     let receiver = document.getElementById('expenseReceiver').value;
-    if(!receiver) receiver = "Pengeluaran Kas";
+    if(!receiver) receiver = "Pengeluaran Umum";
     
     if(!date) {
         alert('Pilih tanggal terlebih dahulu.');
@@ -167,9 +190,7 @@ function saveExpense() {
         dpp = parseInt(dppStr) || 0;
         taxAmount = parseInt(taxStr) || 0;
         
-        // Adjust the amounts in items to be DPP proportional if needed,
-        // Tapi untuk simple, asumsikan akun biaya ter-debit sejumlah DPP, tax sejumlah taxAmount.
-        // Biar validasi balance: Total Item Debit (DPP) + Tax = Total Kas (Kredit)
+        // Adjust the amounts in items to be DPP proportional if needed
         let totalItems = 0;
         items.forEach(it => totalItems += it.amount);
         
@@ -181,7 +202,7 @@ function saveExpense() {
 
     const expData = {
         date, receiver, method, sourceCode, sourceName,
-        items, taxAmount, grandTotal: total
+        items, taxAmount, grandTotal: total, isTaxInclusive
     };
 
     try {
@@ -221,10 +242,48 @@ function renderTable() {
             <td class="px-6 py-4">${sourceBadge}</td>
             <td class="px-6 py-4 text-right">${formatRp(exp.grandTotal)}</td>
             <td class="px-6 py-4 text-center">
-                <button class="text-blue-400 hover:text-blue-300">Lihat</button>
+                <button onclick="viewExpense('${exp.id}')" class="text-blue-400 hover:text-blue-300">Lihat</button>
             </td>
         </tr>`;
     }).join('');
+}
+
+// ========== MODAL LOGIC ==========
+function viewExpense(id) {
+    if (!window.VittaExpense) return;
+    const expenses = window.VittaExpense.getExpenses();
+    const exp = expenses.find(e => e.id === id);
+    if (!exp) return;
+
+    document.getElementById('modalExpId').innerText = exp.id;
+    document.getElementById('modalExpDate').innerText = formatDate(exp.date);
+    document.getElementById('modalExpReceiver').innerText = exp.receiver;
+    document.getElementById('modalExpMethod').innerText = exp.method === 'cash' ? exp.sourceName : 'Hutang Usaha';
+    document.getElementById('modalExpTotal').innerText = formatRp(exp.grandTotal);
+
+    const tbody = document.getElementById('modalExpItems');
+    tbody.innerHTML = exp.items.map(it => `
+        <tr>
+            <td class="py-2">${it.accountName} <span class="text-xs text-gray-500">(${it.accountCode})</span></td>
+            <td class="py-2">${it.desc || '-'}</td>
+            <td class="py-2 text-right">${formatRp(it.amount)}</td>
+        </tr>
+    `).join('');
+
+    const taxInfo = document.getElementById('modalExpTaxInfo');
+    if (exp.taxAmount > 0) {
+        taxInfo.innerHTML = `Termasuk PPN Masukan: <b>${formatRp(exp.taxAmount)}</b>`;
+    } else {
+        taxInfo.innerHTML = '';
+    }
+
+    document.getElementById('modalExpense').classList.remove('hidden');
+    document.getElementById('modalExpense').classList.add('flex');
+}
+
+function closeModalExpense() {
+    document.getElementById('modalExpense').classList.add('hidden');
+    document.getElementById('modalExpense').classList.remove('flex');
 }
 
 document.addEventListener('DOMContentLoaded', () => {

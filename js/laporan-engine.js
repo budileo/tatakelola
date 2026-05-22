@@ -173,9 +173,35 @@ function generateArusKas(startDate, endDate) {
     return report;
 }
 
+function generateLaporanPenjualan(startDate, endDate) {
+    if (typeof getInvoices !== 'function') return { items: [], total: 0 };
+    let invs = getInvoices();
+    if (startDate) invs = invs.filter(i => i.date >= startDate);
+    if (endDate) invs = invs.filter(i => i.date <= endDate);
+    
+    let total = 0;
+    invs.forEach(i => total += i.grandTotal || 0);
+    
+    return { items: invs, total: total };
+}
+
+function generateLaporanPembelian(startDate, endDate) {
+    if (typeof getPurchases !== 'function') return { items: [], total: 0 };
+    let purs = getPurchases();
+    if (startDate) purs = purs.filter(p => p.date >= startDate);
+    if (endDate) purs = purs.filter(p => p.date <= endDate);
+    
+    let total = 0;
+    purs.forEach(p => total += p.grandTotal || 0);
+    
+    return { items: purs, total: total };
+}
+
 window.VittaReport = {
     buildTrialBalance,
     generateLabaRugi,
     generateNeraca,
-    generateArusKas
+    generateArusKas,
+    generateLaporanPenjualan,
+    generateLaporanPembelian
 };

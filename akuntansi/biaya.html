@@ -106,7 +106,9 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-400 mb-1">Penerima (Opsional)</label>
-                                <input type="text" class="expense-input" id="expenseReceiver" placeholder="Nama Vendor / Karyawan">
+                                <select id="expenseReceiver" class="expense-input">
+                                    <option value="">-- Pilih Penerima (Kontak) --</option>
+                                </select>
                             </div>
                             
                             <div class="md:col-span-2 pt-2 border-t border-dark-700">
@@ -212,6 +214,60 @@
             </div>
 
         </main>
+    </div>
+
+    <!-- MODAL: Lihat Detail Biaya -->
+    <div id="modalExpense" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center backdrop-blur-sm">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-in-up">
+            <div class="p-6 border-b border-dark-700 flex justify-between items-center sticky top-0 bg-dark-800/90 backdrop-blur-sm">
+                <h3 class="text-xl font-bold text-white">Detail Pengeluaran <span id="modalExpId" class="text-amber-400"></span></h3>
+                <button onclick="closeModalExpense()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-6">
+                <!-- Info Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-dark-900/50 p-4 rounded-xl">
+                    <div>
+                        <p class="text-gray-400 mb-1">Tanggal</p>
+                        <p class="text-white font-medium" id="modalExpDate">-</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 mb-1">Penerima</p>
+                        <p class="text-white font-medium" id="modalExpReceiver">-</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 mb-1">Metode</p>
+                        <p class="text-white font-medium" id="modalExpMethod">-</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 mb-1">Total</p>
+                        <p class="text-amber-400 font-bold text-lg" id="modalExpTotal">-</p>
+                    </div>
+                </div>
+
+                <!-- Items Table -->
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-300 mb-3 border-b border-dark-700 pb-2">Rincian Akun</h4>
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-gray-400 border-b border-dark-700">
+                            <tr>
+                                <th class="pb-2">Akun Biaya</th>
+                                <th class="pb-2">Deskripsi</th>
+                                <th class="pb-2 text-right">Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalExpItems" class="text-gray-300 divide-y divide-dark-700">
+                            <!-- Injected via JS -->
+                        </tbody>
+                    </table>
+                    <div class="text-right text-xs text-gray-500 mt-2" id="modalExpTaxInfo"></div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-dark-700 bg-dark-800 flex justify-end">
+                <button onclick="closeModalExpense()" class="px-5 py-2 rounded-xl text-sm font-medium text-gray-300 hover:bg-dark-700 transition-colors">Tutup</button>
+            </div>
+        </div>
     </div>
 
     <script src="../js/auth.js"></script>
