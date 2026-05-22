@@ -89,6 +89,16 @@ function updateKasBankAccount(oldCode, data) {
     // For simplicity of this basic implementation, we just update the COA.
 }
 
+function deleteKasBankAccount(code) {
+    let coa = JSON.parse(localStorage.getItem(KB_KEYS.coa)) || [];
+    let accIndex = coa.findIndex(c => c.code === code);
+    if(accIndex === -1) throw new Error("Akun tidak ditemukan.");
+    if(coa[accIndex].is_system) throw new Error("Akun sistem tidak dapat dihapus.");
+    
+    coa.splice(accIndex, 1);
+    localStorage.setItem(KB_KEYS.coa, JSON.stringify(coa));
+}
+
 function getJournals() {
     return JSON.parse(localStorage.getItem(KB_KEYS.journals)) || [];
 }
