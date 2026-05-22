@@ -83,7 +83,11 @@ function initForm() {
         tagContainer.innerHTML = DB.tags.map(t => `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-dark-700/50 px-2 py-1 rounded"><input type="checkbox" value="${t}" class="tagCheck accent-blue-500"><span class="text-sm text-gray-300">${t}</span></label>`).join('');
     }
     const da = document.getElementById('fDPAccount');
-    da.innerHTML = DB.bankAccounts.map(b => `<option value="${b.code}">${b.name}</option>`).join('');
+    let bankOptsList = DB.bankAccounts;
+    if (typeof getKasBankAccounts === 'function') {
+        bankOptsList = getKasBankAccounts();
+    }
+    da.innerHTML = bankOptsList.map(b => `<option value="${b.code}">${b.name}</option>`).join('');
 
     document.getElementById('fInvDate').value = today();
     document.getElementById('fInvNo').value = 'AUTO';

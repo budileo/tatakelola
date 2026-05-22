@@ -121,7 +121,12 @@ function openPayment(invId) {
     window._payInvId = invId;
     const inv = getInvoiceById(invId);
     if (!inv) return;
-    const bankOpts = DB.bankAccounts.map(b => `<option value="${b.code}" data-name="${b.name}">${b.name}</option>`).join('');
+    
+    let bankOptsList = DB.bankAccounts;
+    if (typeof getKasBankAccounts === 'function') {
+        bankOptsList = getKasBankAccounts();
+    }
+    const bankOpts = bankOptsList.map(b => `<option value="${b.code}" data-name="${b.name}">${b.name}</option>`).join('');
 
     document.getElementById('payContent').innerHTML = `
     <div class="bg-dark-800 border border-dark-700 rounded-2xl shadow-xl overflow-hidden">

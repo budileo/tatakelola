@@ -36,7 +36,11 @@
                     <p class="text-xs md:text-sm text-gray-400 hidden md:block">Pantau saldo rekening, transfer likuiditas, dan rekonsiliasi</p>
                 </div>
             </div>
-            <div class="flex space-x-2">
+            <div class="flex flex-wrap gap-2 md:space-x-2">
+                <button onclick="toggleView('formDaftarKas')" class="bg-dark-700 hover:bg-dark-600 text-gray-300 px-3 py-2 rounded-lg font-medium transition-colors text-sm flex items-center border border-dark-600">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    <span class="hidden md:inline">Daftar Kas Bank</span>
+                </button>
                 <button onclick="openModalAddAccount()" class="bg-dark-700 hover:bg-dark-600 text-gray-300 px-3 py-2 rounded-lg font-medium transition-colors text-sm flex items-center border border-dark-600">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     <span class="hidden md:inline">Tambah Akun</span>
@@ -47,7 +51,7 @@
                 </button>
                 <button onclick="toggleView('formTransaction')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-emerald-500/20 flex items-center text-sm">
                     <svg class="w-4 h-4 mr-1 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Terima/Kirim Uang
+                    Terima/Kirim
                 </button>
             </div>
         </header>
@@ -86,6 +90,37 @@
                                 </tr>
                             </thead>
                             <tbody id="transactionBody" class="divide-y divide-dark-700">
+                                <!-- Dipopulasi oleh JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DAFTAR KAS BANK VIEW -->
+            <div id="formDaftarKas" class="hidden max-w-4xl mx-auto space-y-6">
+                <div class="mb-4">
+                    <button onclick="toggleView('list')" class="text-gray-400 hover:text-white flex items-center transition-colors text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Kembali ke Dasbor
+                    </button>
+                </div>
+                <div class="bg-dark-800 border border-dark-700 rounded-xl overflow-hidden shadow-sm">
+                    <div class="p-4 border-b border-dark-700 flex justify-between items-center bg-dark-800/50">
+                        <h3 class="font-bold text-white">Daftar Akun Kas & Bank</h3>
+                        <button onclick="openModalAddAccount()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm">Tambah Akun</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-300">
+                            <thead class="bg-dark-700/30 text-gray-400 border-b border-dark-700 text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4 font-semibold">Kode Akun</th>
+                                    <th class="px-6 py-4 font-semibold">Nama Akun</th>
+                                    <th class="px-6 py-4 font-semibold">Tipe Akun</th>
+                                    <th class="px-6 py-4 font-semibold text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="daftarKasBody" class="divide-y divide-dark-700">
                                 <!-- Dipopulasi oleh JS -->
                             </tbody>
                         </table>
@@ -228,6 +263,36 @@
         </div>
     </div>
 
+    <!-- Modal Edit Kas/Bank -->
+    <div id="editAccountModal" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center p-5 border-b border-dark-700 bg-dark-800/50 rounded-t-2xl">
+                <h3 class="text-lg font-bold text-white">Edit Akun Kas & Bank</h3>
+                <button onclick="closeModalEditAccount()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="editAccountForm" onsubmit="handleEditAccount(event)">
+                <input type="hidden" id="editOldCode">
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block mb-1 text-sm font-medium text-gray-300">Nama Akun <span class="text-rose-500">*</span></label>
+                        <input type="text" id="editAccName" required class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-sm font-medium text-gray-300">Kode Akun <span class="text-rose-500">*</span></label>
+                        <input type="text" id="editAccCode" required class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <p class="text-xs text-gray-500 mt-1">Hati-hati mengubah kode jika sudah ada transaksi terkait.</p>
+                    </div>
+                </div>
+                <div class="p-5 border-t border-dark-700 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModalEditAccount()" class="px-4 py-2 text-sm text-gray-300 bg-dark-700 border border-dark-600 rounded-lg hover:bg-dark-600">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-500">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="../js/auth.js"></script>
     <script src="../js/sidebar.js"></script>
@@ -246,12 +311,16 @@
             document.getElementById('listView').classList.add('hidden');
             document.getElementById('formTransfer').classList.add('hidden');
             document.getElementById('formTransaction').classList.add('hidden');
+            document.getElementById('formDaftarKas').classList.add('hidden');
             
             document.getElementById(view).classList.remove('hidden');
             if (view !== 'list') {
                 document.getElementById(view).classList.add('animate-fade-in-up');
                 populateSelects(); // refresh dropdowns when opening forms
-            } else {
+            }
+            if (view === 'formDaftarKas') {
+                renderDaftarKas();
+            } else if (view === 'list') {
                 refreshUI(); // refresh list when returning
             }
         }
@@ -371,6 +440,25 @@
             tbody.innerHTML = html;
         }
 
+        // === RENDER DAFTAR KAS ===
+        function renderDaftarKas() {
+            const tbody = document.getElementById('daftarKasBody');
+            const accounts = getKasBankAccounts();
+            
+            tbody.innerHTML = accounts.map(acc => `
+                <tr class="hover:bg-dark-700/30 transition-colors">
+                    <td class="px-6 py-3 text-white font-medium">${acc.code}</td>
+                    <td class="px-6 py-3">${acc.name}</td>
+                    <td class="px-6 py-3">
+                        <span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs font-medium">${acc.is_system ? 'Sistem' : 'Custom'}</span>
+                    </td>
+                    <td class="px-6 py-3 text-right">
+                        <button onclick="openModalEditAccount('${acc.code}', '${acc.name}')" class="text-blue-400 hover:text-blue-300 mx-1 text-sm">Edit</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
         // === EVENT HANDLERS ===
         function updateTxFormColors() {
             const isMasuk = document.querySelector('input[name="tx_type"]:checked').value === 'in';
@@ -446,6 +534,36 @@
                 Swal.fire({icon: 'success', title: 'Tersimpan', background: '#1f2937', color: '#fff', timer: 1000, showConfirmButton: false});
                 closeModalAddAccount();
                 refreshUI();
+                if(!document.getElementById('formDaftarKas').classList.contains('hidden')) {
+                    renderDaftarKas();
+                }
+            } catch(err) {
+                Swal.fire({icon: 'error', title: 'Gagal', text: err.message, background: '#1f2937', color: '#fff'});
+            }
+        }
+
+        // === MODAL EDIT ACCOUNT ===
+        function openModalEditAccount(code, name) {
+            document.getElementById('editOldCode').value = code;
+            document.getElementById('editAccCode').value = code;
+            document.getElementById('editAccName').value = name;
+            document.getElementById('editAccountModal').classList.remove('hidden');
+        }
+        function closeModalEditAccount() {
+            document.getElementById('editAccountModal').classList.add('hidden');
+        }
+        function handleEditAccount(e) {
+            e.preventDefault();
+            const oldCode = document.getElementById('editOldCode').value;
+            try {
+                updateKasBankAccount(oldCode, {
+                    name: document.getElementById('editAccName').value,
+                    code: document.getElementById('editAccCode').value
+                });
+                Swal.fire({icon: 'success', title: 'Tersimpan', background: '#1f2937', color: '#fff', timer: 1000, showConfirmButton: false});
+                closeModalEditAccount();
+                refreshUI();
+                renderDaftarKas(); // refresh the list
             } catch(err) {
                 Swal.fire({icon: 'error', title: 'Gagal', text: err.message, background: '#1f2937', color: '#fff'});
             }
