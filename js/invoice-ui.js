@@ -62,7 +62,21 @@ function renderList() {
 // ========== INIT FORM ==========
 function initForm() {
     const cs = document.getElementById('fCustomer');
-    cs.innerHTML = '<option value="">-- Pilih Pelanggan --</option>' + DB.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    
+    // --- Sinkronisasi data kontak dari Master Kontak ---
+    let customersList = DB.customers; // default
+    const localContacts = localStorage.getItem('vitta_contacts');
+    if(localContacts) {
+        try {
+            const parsed = JSON.parse(localContacts);
+            const valid = parsed.filter(c => c.tipe === 'Customer' || c.tipe === 'Keduanya');
+            if(valid.length > 0) {
+                customersList = valid.map(c => ({ id: c.id, name: (c.sapaan ? c.sapaan + ' ' : '') + c.nama }));
+            }
+        } catch(e) {}
+    }
+
+    cs.innerHTML = '<option value="">-- Pilih Pelanggan --</option>' + customersList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     // Multi-tag checkboxes
     const tagContainer = document.getElementById('fTagCheckboxes');
     if (tagContainer) {
