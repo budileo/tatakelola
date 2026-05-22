@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Kontak - Akuntansi Vitta ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        dark: { 900: '#111827', 800: '#1f2937', 700: '#374151', 600: '#4b5563' },
+                        primary: '#3b82f6',
+                        accent: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="../css/style.css">
+    <!-- SweetAlert2 for notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex">
+    
+    <!-- Sidebar Placeholder -->
+    <div id="sidebar-container" class="shrink-0"></div>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-y-auto bg-dark-900 relative">
+        <!-- Top Header -->
+        <header class="bg-dark-800 border-b border-dark-700 p-4 md:p-6 flex justify-between items-center sticky top-0 z-10">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="mr-4 text-gray-400 hover:text-white lg:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Master Kontak</h1>
+                    <p class="text-xs md:text-sm text-gray-400 hidden md:block">Kelola data Customer dan Supplier</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-2 rounded-lg text-white transition-colors flex items-center font-medium shadow-lg shadow-blue-500/20">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Tambah Kontak
+                </button>
+            </div>
+        </header>
+
+        <main class="p-6 max-w-7xl mx-auto space-y-6">
+            
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
+                    <p class="text-sm font-medium text-gray-400">Total Kontak</p>
+                    <h3 class="text-2xl font-bold text-white mt-1" id="statTotal">0</h3>
+                </div>
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
+                    <p class="text-sm font-medium text-gray-400">Total Piutang (AR)</p>
+                    <h3 class="text-2xl font-bold text-orange-400 mt-1" id="statAR">Rp 0</h3>
+                </div>
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
+                    <p class="text-sm font-medium text-gray-400">Total Hutang (AP)</p>
+                    <h3 class="text-2xl font-bold text-rose-400 mt-1" id="statAP">Rp 0</h3>
+                </div>
+            </div>
+
+            <!-- Contacts Table -->
+            <div class="bg-dark-800 border border-dark-700 rounded-2xl p-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div class="flex space-x-2">
+                        <input type="text" id="searchInput" placeholder="Cari nama atau email..." class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-3 py-2" onkeyup="renderTable()">
+                        <select id="filterType" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2" onchange="renderTable()">
+                            <option value="all">Semua Tipe</option>
+                            <option value="Customer">Customer</option>
+                            <option value="Supplier">Supplier</option>
+                            <option value="Keduanya">Keduanya</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-400">
+                        <thead class="text-xs uppercase bg-dark-700/50 text-gray-300">
+                            <tr>
+                                <th class="px-4 py-3 rounded-l-lg">Nama / Perusahaan</th>
+                                <th class="px-4 py-3">Tipe</th>
+                                <th class="px-4 py-3">Kontak</th>
+                                <th class="px-4 py-3 text-right">Total Piutang</th>
+                                <th class="px-4 py-3 text-right">Total Hutang</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                                <th class="px-4 py-3 text-center rounded-r-lg">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contactTableBody">
+                            <!-- Data will be rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Form Tambah/Edit Kontak -->
+    <div id="contactModal" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform transition-all scale-95 opacity-0" id="modalContent">
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-dark-700 bg-dark-800 sticky top-0 z-10">
+                <h3 class="text-xl font-bold text-white" id="modalTitle">Tambah Kontak Baru</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <form id="contactForm">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        
+                        <!-- Kolom Kiri: Info Utama & Foto -->
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-300">Foto / Logo <span class="text-gray-500">(Opsional)</span></label>
+                                <div class="flex items-center justify-center w-full">
+                                    <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dark-600 border-dashed rounded-xl cursor-pointer bg-dark-700/50 hover:bg-dark-700 hover:border-blue-500/50 transition-all">
+                                        <div class="flex flex-col items-center justify-center pt-5 pb-6 text-gray-400">
+                                            <svg class="w-8 h-8 mb-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                            <p class="text-xs">Klik untuk upload</p>
+                                        </div>
+                                        <input type="file" class="hidden" accept="image/*" />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-300">Tipe Kontak <span class="text-rose-500">*</span></label>
+                                <select id="inputTipe" required class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" onchange="updateAccountDefaults()">
+                                    <option value="">Pilih Tipe...</option>
+                                    <option value="Customer">Customer</option>
+                                    <option value="Supplier">Supplier</option>
+                                    <option value="Keduanya">Keduanya</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-300">Grup / Kategori</label>
+                                <input type="text" id="inputGrup" placeholder="Contoh: VIP, Retail, Vendor IT" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            </div>
+
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-300">ID Internal / Kode</label>
+                                <input type="text" id="inputKode" placeholder="Auto / Custom" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            </div>
+                        </div>
+
+                        <!-- Kolom Kanan: Detail -->
+                        <div class="md:col-span-2 space-y-6">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-300">Sapaan</label>
+                                    <select id="inputSapaan" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                        <option value="">-</option>
+                                        <option value="Bpk">Bpk</option>
+                                        <option value="Ibu">Ibu</option>
+                                        <option value="Sdr">Sdr</option>
+                                        <option value="PT">PT</option>
+                                        <option value="CV">CV</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="block mb-2 text-sm font-medium text-gray-300">Nama Kontak <span class="text-rose-500">*</span></label>
+                                    <input type="text" id="inputNama" required placeholder="Nama lengkap..." class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-300">Nama Perusahaan</label>
+                                <input type="text" id="inputPerusahaan" placeholder="Nama entitas bisnis..." class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-300">Email</label>
+                                    <input type="email" id="inputEmail" placeholder="email@contoh.com" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                </div>
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-300">Telepon</label>
+                                    <input type="tel" id="inputTelepon" placeholder="0812xxxxxx" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-300">Alamat Lengkap</label>
+                                <textarea id="inputAlamat" rows="2" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"></textarea>
+                            </div>
+                            
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-300">Kota</label>
+                                    <input type="text" id="inputKota" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                </div>
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-300">Provinsi</label>
+                                    <input type="text" id="inputProvinsi" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                </div>
+                                <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-300">Kode Pos</label>
+                                    <input type="text" id="inputKodePos" class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Expandable Section -->
+                    <div class="mt-8">
+                        <button type="button" onclick="toggleExpand()" class="flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors mb-4 focus:outline-none">
+                            <span id="expandText">Tampilkan selengkapnya</span>
+                            <svg id="expandIcon" class="w-4 h-4 ml-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+
+                        <div id="expandableContent" class="hidden grid-cols-1 md:grid-cols-2 gap-6 bg-dark-700/30 p-5 rounded-xl border border-dark-600/50">
+                            
+                            <!-- Info Legal & Operasional -->
+                            <div class="space-y-4">
+                                <h4 class="text-gray-200 font-medium text-sm border-b border-dark-600 pb-2">Informasi Tambahan</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block mb-2 text-xs font-medium text-gray-400">NPWP</label>
+                                        <input type="text" id="inputNPWP" class="bg-dark-700 border border-dark-600 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    </div>
+                                    <div>
+                                        <label class="block mb-2 text-xs font-medium text-gray-400">NIK / Identitas</label>
+                                        <input type="text" id="inputNIK" class="bg-dark-700 border border-dark-600 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block mb-2 text-xs font-medium text-gray-400">Catatan Internal</label>
+                                    <textarea id="inputCatatan" rows="2" class="bg-dark-700 border border-dark-600 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2"></textarea>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="block mb-2 text-xs font-medium text-gray-400">Termin</label>
+                                        <select id="inputTermin" class="bg-dark-700 border border-dark-600 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                            <option value="Cash">Cash</option>
+                                            <option value="7 Hari">7 Hari</option>
+                                            <option value="15 Hari">15 Hari</option>
+                                            <option value="30 Hari">30 Hari</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block mb-2 text-xs font-medium text-gray-400">Pajak Default</label>
+                                        <select id="inputPajak" class="bg-dark-700 border border-dark-600 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                            <option value="Non PPN">Non PPN</option>
+                                            <option value="PPN 11%">PPN 11%</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block mb-2 text-xs font-medium text-gray-400">Mata Uang</label>
+                                        <select id="inputMataUang" class="bg-dark-700 border border-dark-600 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                            <option value="IDR">IDR</option>
+                                            <option value="USD">USD</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Integrasi Akuntansi (WAJIB) -->
+                            <div class="space-y-4">
+                                <h4 class="text-blue-400 font-medium text-sm border-b border-dark-600 pb-2 flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                    Integrasi Akuntansi (Wajib)
+                                </h4>
+                                
+                                <div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
+                                    <p class="text-xs text-blue-200 mb-3">Akun di bawah ini akan digunakan untuk jurnal otomatis saat ada transaksi Invoice / Bill dengan kontak ini.</p>
+                                    
+                                    <div class="space-y-3">
+                                        <div id="arAccountSection">
+                                            <label class="block mb-1 text-xs font-medium text-gray-300">Akun Piutang Usaha (AR) <span class="text-rose-500">*</span></label>
+                                            <select id="inputAkunAR" class="bg-dark-700 border border-dark-600 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                                <option value="">-- Tidak Ada --</option>
+                                                <option value="1102 - Piutang Usaha IDR">1102 - Piutang Usaha IDR</option>
+                                                <option value="1103 - Piutang Usaha USD">1103 - Piutang Usaha USD</option>
+                                            </select>
+                                        </div>
+                                        <div id="apAccountSection">
+                                            <label class="block mb-1 text-xs font-medium text-gray-300">Akun Hutang Usaha (AP) <span class="text-rose-500">*</span></label>
+                                            <select id="inputAkunAP" class="bg-dark-700 border border-dark-600 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2">
+                                                <option value="">-- Tidak Ada --</option>
+                                                <option value="2101 - Hutang Usaha IDR">2101 - Hutang Usaha IDR</option>
+                                                <option value="2102 - Hutang Usaha USD">2102 - Hutang Usaha USD</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center mt-2">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="inputStatus" class="sr-only peer" checked>
+                                        <div class="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        <span class="ml-3 text-xs font-medium text-gray-300">Kontak Aktif</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 md:p-6 border-t border-dark-700 bg-dark-800 flex justify-end space-x-3 rounded-b-2xl">
+                <button type="button" onclick="closeModal()" class="px-5 py-2.5 text-sm font-medium text-gray-300 bg-dark-700 border border-dark-600 rounded-lg hover:bg-dark-600 hover:text-white focus:ring-4 focus:outline-none focus:ring-dark-600 transition-colors">Batal</button>
+                <button type="button" onclick="saveContact()" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-800 transition-colors flex items-center shadow-lg shadow-blue-500/20">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    Simpan Kontak
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script>
+        // --- Mock Data & Logic ---
+        let contacts = [
+            { id: 1, sapaan: 'PT', nama: 'Abadi Jaya Sejahtera', tipe: 'Customer', telepon: '08112345678', email: 'info@abadijaya.com', ar: 15000000, ap: 0, status: true },
+            { id: 2, sapaan: 'CV', nama: 'Bintang Terang', tipe: 'Supplier', telepon: '08567890123', email: 'sales@bintang.com', ar: 0, ap: 8500000, status: true },
+            { id: 3, sapaan: 'Bpk', nama: 'Candra Gunawan', tipe: 'Keduanya', telepon: '082133445566', email: 'candra@mail.com', ar: 2500000, ap: 1200000, status: true },
+            { id: 4, sapaan: 'PT', nama: 'Delta Teknologi', tipe: 'Customer', telepon: '08199887766', email: 'billing@delta.id', ar: 45000000, ap: 0, status: false },
+        ];
+
+        // Format Currency
+        const formatRp = (angka) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        };
+
+        // Render Table
+        function renderTable() {
+            const tbody = document.getElementById('contactTableBody');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filter = document.getElementById('filterType').value;
+
+            tbody.innerHTML = '';
+            
+            // Filter and Sort (Alphabetical by Nama)
+            let filtered = contacts.filter(c => {
+                const matchSearch = c.nama.toLowerCase().includes(search) || c.email.toLowerCase().includes(search);
+                const matchFilter = filter === 'all' ? true : c.tipe === filter;
+                return matchSearch && matchFilter;
+            }).sort((a, b) => a.nama.localeCompare(b.nama));
+
+            let totalAR = 0;
+            let totalAP = 0;
+
+            filtered.forEach(c => {
+                totalAR += c.ar;
+                totalAP += c.ap;
+                
+                let tipeBadge = '';
+                if(c.tipe === 'Customer') tipeBadge = `<span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs">Customer</span>`;
+                else if(c.tipe === 'Supplier') tipeBadge = `<span class="bg-rose-500/10 text-rose-400 px-2 py-1 rounded text-xs">Supplier</span>`;
+                else tipeBadge = `<span class="bg-purple-500/10 text-purple-400 px-2 py-1 rounded text-xs">Keduanya</span>`;
+
+                let statusBadge = c.status 
+                    ? `<span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs flex items-center justify-center w-max mx-auto"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Aktif</span>` 
+                    : `<span class="bg-gray-500/10 text-gray-400 px-2 py-1 rounded text-xs flex items-center justify-center w-max mx-auto"><span class="w-1.5 h-1.5 rounded-full bg-gray-500 mr-1.5"></span> Nonaktif</span>`;
+
+                tbody.innerHTML += `
+                    <tr class="border-b border-dark-700 hover:bg-dark-700/30 transition-colors">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-white">${c.sapaan ? c.sapaan + ' ' : ''}${c.nama}</div>
+                            <div class="text-xs text-gray-500">${c.email}</div>
+                        </td>
+                        <td class="px-4 py-3">${tipeBadge}</td>
+                        <td class="px-4 py-3">${c.telepon}</td>
+                        <td class="px-4 py-3 text-right text-orange-400 font-medium">${formatRp(c.ar)}</td>
+                        <td class="px-4 py-3 text-right text-rose-400 font-medium">${formatRp(c.ap)}</td>
+                        <td class="px-4 py-3 text-center">${statusBadge}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button class="text-blue-400 hover:text-blue-300 mx-1" title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                            <button class="text-gray-400 hover:text-white mx-1" title="Detail"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Update Stats
+            document.getElementById('statTotal').innerText = filtered.length;
+            document.getElementById('statAR').innerText = formatRp(totalAR);
+            document.getElementById('statAP').innerText = formatRp(totalAP);
+        }
+
+        // Modal Functions
+        function openModal() {
+            document.getElementById('contactForm').reset();
+            document.getElementById('contactModal').classList.remove('hidden');
+            // Small delay for transition
+            setTimeout(() => {
+                document.getElementById('modalContent').classList.remove('scale-95', 'opacity-0');
+            }, 10);
+            updateAccountDefaults(); // Reset account validation
+        }
+
+        function closeModal() {
+            document.getElementById('modalContent').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                document.getElementById('contactModal').classList.add('hidden');
+            }, 200); // Wait for transition
+        }
+
+        // Expandable Content
+        function toggleExpand() {
+            const content = document.getElementById('expandableContent');
+            const icon = document.getElementById('expandIcon');
+            const text = document.getElementById('expandText');
+
+            if(content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                content.classList.add('grid');
+                icon.classList.add('rotate-180');
+                text.innerText = "Sembunyikan";
+            } else {
+                content.classList.add('hidden');
+                content.classList.remove('grid');
+                icon.classList.remove('rotate-180');
+                text.innerText = "Tampilkan selengkapnya";
+            }
+        }
+
+        // Account Defaults Logic
+        function updateAccountDefaults() {
+            const tipe = document.getElementById('inputTipe').value;
+            const arSelect = document.getElementById('inputAkunAR');
+            const apSelect = document.getElementById('inputAkunAP');
+            
+            arSelect.disabled = false;
+            apSelect.disabled = false;
+            arSelect.required = false;
+            apSelect.required = false;
+
+            if(tipe === 'Customer') {
+                arSelect.value = '1102 - Piutang Usaha IDR';
+                arSelect.required = true;
+                apSelect.value = '';
+                apSelect.disabled = true;
+            } else if (tipe === 'Supplier') {
+                apSelect.value = '2101 - Hutang Usaha IDR';
+                apSelect.required = true;
+                arSelect.value = '';
+                arSelect.disabled = true;
+            } else if (tipe === 'Keduanya') {
+                arSelect.value = '1102 - Piutang Usaha IDR';
+                apSelect.value = '2101 - Hutang Usaha IDR';
+                arSelect.required = true;
+                apSelect.required = true;
+            } else {
+                arSelect.value = '';
+                apSelect.value = '';
+            }
+        }
+
+        // Save Function
+        function saveContact() {
+            const form = document.getElementById('contactForm');
+            if(!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const nama = document.getElementById('inputNama').value;
+            const tipe = document.getElementById('inputTipe').value;
+            const telepon = document.getElementById('inputTelepon').value;
+            const email = document.getElementById('inputEmail').value;
+
+            // Duplication Check (Name + Phone or Email)
+            const isDuplicate = contacts.some(c => 
+                c.nama.toLowerCase() === nama.toLowerCase() && 
+                (c.telepon === telepon || (email && c.email === email))
+            );
+
+            if(isDuplicate) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Kemungkinan Duplikat!',
+                    text: 'Kontak dengan nama dan nomor/email yang mirip sudah ada di database.',
+                    background: '#1f2937', color: '#fff',
+                    confirmButtonColor: '#3b82f6'
+                });
+                return;
+            }
+
+            // Save logic (Mock)
+            contacts.push({
+                id: contacts.length + 1,
+                sapaan: document.getElementById('inputSapaan').value,
+                nama: nama,
+                tipe: tipe,
+                telepon: telepon,
+                email: email,
+                ar: 0,
+                ap: 0,
+                status: document.getElementById('inputStatus').checked
+            });
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: 'Kontak berhasil disimpan.',
+                background: '#1f2937', color: '#fff',
+                showConfirmButton: false, timer: 1500
+            });
+
+            closeModal();
+            renderTable();
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTable();
+        });
+
+    </script>
+    <script src='../js/theme.js'></script>
+</body>
+</html>
