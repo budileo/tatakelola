@@ -78,7 +78,20 @@
     // ─── PRODUCTS CRUD ───────────────────────────────────────
 
     function getProducts() {
-        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+        try { 
+            let prods = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            if (window.VittaInventory) {
+                prods = prods.map(p => {
+                    if (p.is_tracked) {
+                        const stock = window.VittaInventory.getProductStock(p.id);
+                        p.current_stock = stock.qty;
+                        // Kita bisa juga assign p.buy_price = stock.hpp jika HPP otomatis update
+                    }
+                    return p;
+                });
+            }
+            return prods;
+        }
         catch (e) { return []; }
     }
 
@@ -339,50 +352,42 @@
         const product = getProductById(productId);
         if (!product || !product.is_tracked) return { success: false, error: 'Produk tidak dilacak' };
 
-        const stockBefore = product.current_stock;
-        let stockAfter = stockBefore;
-
-        switch (type) {
-            case 'PURCHASE':
-                stockAfter = stockBefore + Math.abs(qty);
-                break;
-            case 'SALE':
-                stockAfter = stockBefore - Math.abs(qty);
-                break;
-            case 'RETURN_BUY':
-                stockAfter = stockBefore - Math.abs(qty);
-                break;
-            case 'RETURN_SELL':
-                stockAfter = stockBefore + Math.abs(qty);
-                break;
-            case 'ADJUSTMENT':
-                stockAfter = stockBefore + qty; // qty bisa positif/negatif
-                break;
+        if (window.VittaInventory) {
+            // Default ke gudang utama
+            const whList = window.VittaInventory.getWarehouses();
+            const mainWhId = whList.length > 0 ? whList[0].id : null;
+            if (!mainWhId) return { success: false, error: 'Gudang tidak ditemukan' };
+            
+            // Map type
+            let mappedType = 'in';
+            let signedQty = qty;
+            
+            if (type === 'PURCHASE' || type === 'RETURN_SELL') {
+                mappedType = 'in';
+                signedQty = Math.abs(qty);
+            } else if (type === 'SALE' || type === 'RETURN_BUY') {
+                mappedType = 'out';
+                signedQty = -Math.abs(qty);
+            } else {
+                mappedType = 'adjustment';
+            }
+            
+            try {
+                window.VittaInventory.recordStockMovement({
+                    product_id: productId,
+                    warehouse_id: mainWhId,
+                    tipe: mappedType,
+                    qty: signedQty,
+                    hpp: unitCost || product.buy_price,
+                    reference_id: refNo,
+                    memo: notes
+                });
+                return { success: true, stockBefore: product.current_stock, stockAfter: product.current_stock + signedQty };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
         }
-
-        // Update current_stock
-        const products = getProducts();
-        const idx = products.findIndex(p => p.id === productId);
-        if (idx !== -1) {
-            products[idx].current_stock = stockAfter;
-            products[idx].updated_at = new Date().toISOString();
-            saveProducts(products);
-        }
-
-        // Record ledger
-        addStockLedger({
-            product_id: productId,
-            type: type,
-            reference_no: refNo,
-            qty: qty,
-            unit_cost: unitCost || 0,
-            stock_before: stockBefore,
-            stock_after: stockAfter,
-            notes: notes || '',
-            created_by: (window.VITTA_USER || {}).username || 'system'
-        });
-
-        return { success: true, stockBefore, stockAfter };
+        return { success: false, error: 'Inventory Engine tidak aktif' };
     }
 
     // ─── AUDIT LOG ───────────────────────────────────────────

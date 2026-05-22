@@ -1,114 +1,70 @@
 // js/kasbank-engine.js
 
-// Konstanta Storage
-const KB_KEYS = {
-    coa: 'vitta_coa',
-    journals: 'vitta_journals'
-};
-
-// Default Kas & Bank
-const DEFAULT_KAS_BANK = [
-    { code: '1-10001', name: 'Kas Kecil', category: 'Kas & Bank', is_system: true },
-    { code: '1-10002', name: 'Bank BCA', category: 'Kas & Bank', is_system: true },
-    { code: '1-10003', name: 'Bank Mandiri', category: 'Kas & Bank', is_system: true },
-];
-
 function initKasBankEngine() {
-    let coa = JSON.parse(localStorage.getItem(KB_KEYS.coa));
-    if (!coa) {
-        // Jika belum ada COA sama sekali, buat dengan data Kas/Bank
-        localStorage.setItem(KB_KEYS.coa, JSON.stringify(DEFAULT_KAS_BANK));
-    } else {
-        // Pastikan akun default ada
-        let changed = false;
-        DEFAULT_KAS_BANK.forEach(def => {
-            if (!coa.find(c => c.code === def.code)) {
-                coa.push(def);
-                changed = true;
-            }
-        });
-        if (changed) localStorage.setItem(KB_KEYS.coa, JSON.stringify(coa));
-    }
+    // COA is auto-seeded by coa-engine.js
+    // Journal engine is auto-loaded
 }
 
 function getKasBankAccounts() {
-    let coa = JSON.parse(localStorage.getItem(KB_KEYS.coa)) || [];
-    return coa.filter(c => c.category === 'Kas & Bank').sort((a,b) => a.code.localeCompare(b.code));
+    if (window.VittaCOA) {
+        return window.VittaCOA.getAccountsByCategory('Kas & Bank').sort((a,b) => a.code.localeCompare(b.code));
+    }
+    return [];
 }
 
 function getAllCoa() {
-    let coa = JSON.parse(localStorage.getItem(KB_KEYS.coa));
-    if(!coa) {
-        // fallback dummy COA untuk lawan akun jika belum ada
-        coa = [
-            ...DEFAULT_KAS_BANK,
-            { code: '4-40000', name: 'Pendapatan Lain-lain', category: 'Pendapatan', is_system: false },
-            { code: '6-60000', name: 'Biaya Administrasi Bank', category: 'Biaya', is_system: false },
-            { code: '3-30000', name: 'Modal Pemilik', category: 'Ekuitas', is_system: false }
-        ];
-        localStorage.setItem(KB_KEYS.coa, JSON.stringify(coa));
+    if (window.VittaCOA) {
+        return window.VittaCOA.getActiveAccounts();
     }
-    return coa;
+    return [];
 }
 
 function addKasBankAccount(data) {
     if(!data.name || !data.code) throw new Error("Nama dan Kode Akun wajib diisi.");
-    let coa = JSON.parse(localStorage.getItem(KB_KEYS.coa)) || [];
-    if(coa.find(c => c.code === data.code)) throw new Error("Kode Akun sudah digunakan.");
-    
-    coa.push({
-        code: data.code,
-        name: data.name,
-        category: 'Kas & Bank',
-        parent: data.parent || null,
-        is_system: false,
-        createdAt: new Date().toISOString()
-    });
-    
-    localStorage.setItem(KB_KEYS.coa, JSON.stringify(coa));
+    if (window.VittaCOA) {
+        const res = window.VittaCOA.addAccount({
+            name: data.name,
+            code: data.code,
+            category: 'Kas & Bank'
+        });
+        if (!res.success) throw new Error(res.error);
+    } else {
+        throw new Error("COA Engine tidak ditemukan");
+    }
 }
 
 function updateKasBankAccount(oldCode, data) {
     if(!data.name) throw new Error("Nama Akun wajib diisi.");
-    let coa = JSON.parse(localStorage.getItem(KB_KEYS.coa)) || [];
-    let accIndex = coa.findIndex(c => c.code === oldCode);
-    if(accIndex === -1) throw new Error("Akun tidak ditemukan.");
-    
-    // Check if new code is already used by another account
-    if (data.code !== oldCode && coa.find(c => c.code === data.code)) {
-        throw new Error("Kode Akun sudah digunakan oleh akun lain.");
+    if (window.VittaCOA) {
+        const acc = window.VittaCOA.getAccountByCode(oldCode);
+        if(!acc) throw new Error("Akun tidak ditemukan.");
+        
+        const res = window.VittaCOA.updateAccount(acc.id, {
+            name: data.name,
+            code: data.code
+        });
+        if (!res.success) throw new Error(res.error);
     }
-
-    coa[accIndex].name = data.name;
-    if (data.code) coa[accIndex].code = data.code;
-    // We do not change category, is_system, etc.
-
-    localStorage.setItem(KB_KEYS.coa, JSON.stringify(coa));
-    
-    // Note: If code changed, ideally we should update all journals that use oldCode.
-    // For simplicity of this basic implementation, we just update the COA.
 }
 
 function deleteKasBankAccount(code) {
-    let coa = JSON.parse(localStorage.getItem(KB_KEYS.coa)) || [];
-    let accIndex = coa.findIndex(c => c.code === code);
-    if(accIndex === -1) throw new Error("Akun tidak ditemukan.");
-    if(coa[accIndex].is_system) throw new Error("Akun sistem tidak dapat dihapus.");
-    
-    coa.splice(accIndex, 1);
-    localStorage.setItem(KB_KEYS.coa, JSON.stringify(coa));
-}
-
-function getJournals() {
-    return JSON.parse(localStorage.getItem(KB_KEYS.journals)) || [];
+    if (window.VittaCOA) {
+        const acc = window.VittaCOA.getAccountByCode(code);
+        if(!acc) throw new Error("Akun tidak ditemukan.");
+        
+        const res = window.VittaCOA.deleteAccount(acc.id);
+        if (!res.success) throw new Error(res.error);
+    }
 }
 
 // Saldo = Total Debit - Total Kredit (untuk akun Asset / Kas)
 function calculateBalance(accountCode) {
-    const journals = getJournals();
+    if (!window.getJournals) return 0;
+    const journals = window.getJournals();
     let balance = 0;
     
     journals.forEach(j => {
+        if(j.status !== 'posted') return;
         if(!j.lines) return;
         j.lines.forEach(line => {
             if (line.account === accountCode) {
@@ -124,7 +80,7 @@ function calculateBalance(accountCode) {
 // Saldo seluruh Kas/Bank per akun
 function getAllKasBankBalances() {
     const accounts = getKasBankAccounts();
-    const journals = getJournals();
+    const journals = window.getJournals ? window.getJournals() : [];
     
     let balances = {};
     let metrics = {}; 
@@ -134,6 +90,7 @@ function getAllKasBankBalances() {
     });
     
     journals.forEach(j => {
+        if(j.status !== 'posted') return;
         if(!j.lines) return;
         let hasKasBank = false;
         j.lines.forEach(line => {
@@ -165,21 +122,6 @@ function getAllKasBankBalances() {
     }));
 }
 
-function saveTransactionJournal(date, memo, lines, refId) {
-    let journals = getJournals();
-    const entry = {
-        id: 'JRN-KB-' + Date.now(),
-        date: date,
-        memo: memo,
-        lines: lines,
-        refId: refId || '',
-        createdAt: new Date().toISOString()
-    };
-    journals.unshift(entry);
-    localStorage.setItem(KB_KEYS.journals, JSON.stringify(journals));
-    return entry;
-}
-
 function recordKasBankTransaction(data) {
     if(data.amount <= 0) throw new Error("Nominal harus lebih dari 0.");
     if(!data.accountKas || !data.accountLawan) throw new Error("Akun Kas dan Akun Lawan wajib diisi.");
@@ -193,7 +135,16 @@ function recordKasBankTransaction(data) {
         lines.push({ account: data.accountKas, accountName: getAccountName(data.accountKas), debit: 0, credit: data.amount });
     }
     
-    return saveTransactionJournal(data.date, data.memo, lines);
+    if(window.recordJournal) {
+        return window.recordJournal({
+            date: data.date,
+            memo: data.memo,
+            lines: lines,
+            type: 'KAS_BANK'
+        });
+    } else {
+        throw new Error("Journal Engine tidak ditemukan.");
+    }
 }
 
 function recordTransfer(data) {
@@ -205,14 +156,28 @@ function recordTransfer(data) {
     lines.push({ account: data.accountTo, accountName: getAccountName(data.accountTo), debit: data.amount, credit: 0 });
     lines.push({ account: data.accountFrom, accountName: getAccountName(data.accountFrom), debit: 0, credit: data.amount });
     
-    return saveTransactionJournal(data.date, data.memo, lines);
+    if(window.recordJournal) {
+        return window.recordJournal({
+            date: data.date,
+            memo: data.memo,
+            lines: lines,
+            type: 'TRANSFER'
+        });
+    } else {
+        throw new Error("Journal Engine tidak ditemukan.");
+    }
 }
 
 function getAccountName(code) {
-    let coa = getAllCoa();
-    let acc = coa.find(c => c.code === code);
-    return acc ? acc.name : code;
+    if (window.VittaCOA) {
+        const acc = window.VittaCOA.getAccountByCode(code);
+        return acc ? acc.name : code;
+    }
+    return code;
 }
+
+// Supaya kasbank.html tetap jalan tanpa crash jika getJournals dicari global
+window.getJournals = window.getJournals || (() => []);
 
 var formatRp = formatRp || ((angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka));
 var formatDate = formatDate || ((d) => {

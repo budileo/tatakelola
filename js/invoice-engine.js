@@ -117,15 +117,25 @@ function addAudit(action, refId, detail) {
 
 // ========== JOURNAL ENGINE ==========
 function createJournalEntry(date, memo, lines, refId) {
-    const journals = loadData(KEYS.journals);
-    const entry = {
-        id: 'JRN-' + Date.now(),
-        date, memo, lines, refId,
-        createdAt: now(),
-    };
-    journals.unshift(entry);
-    saveData(KEYS.journals, journals);
-    return entry;
+    if (window.recordJournal) {
+        return window.recordJournal({
+            date: date,
+            memo: memo,
+            lines: lines,
+            refId: refId,
+            type: 'SALES_INVOICE'
+        });
+    } else {
+        const journals = loadData(KEYS.journals);
+        const entry = {
+            id: 'JRN-' + Date.now(),
+            date, memo, lines, refId,
+            createdAt: now(),
+        };
+        journals.unshift(entry);
+        saveData(KEYS.journals, journals);
+        return entry;
+    }
 }
 
 // ========== INVOICE CRUD ==========
@@ -173,17 +183,39 @@ function saveInvoice(invData) {
     invoices.unshift(invData);
     saveData(KEYS.invoices, invoices);
 
-    // === JURNAL HANYA DIBUAT SAAT ADA PEMBAYARAN ===
-    // Saat invoice dibuat, TIDAK ada jurnal otomatis.
-    // Jurnal hanya terbentuk saat:
-    //   1. DP dibayar (di bawah)
-    //   2. Pembayaran invoice (recordPayment)
+    // === AUTO JOURNAL: Pengakuan Piutang dan Pendapatan ===
+    const piutangCode = DB.coa.piutang.code;
+    const piutangName = DB.coa.piutang.name;
+    const pendapatanCode = DB.coa.pendapatan.code;
+    const pendapatanName = DB.coa.pendapatan.name;
+
+    const jLines = [];
+    // Debit: Piutang Usaha sejumlah Grand Total
+    jLines.push({ account: piutangCode, accountName: piutangName, debit: invData.grandTotal, credit: 0 });
+    
+    // Kredit: Pendapatan (Subtotal sebelum PPN, dsb)
+    let totalPendapatan = invData.subtotal;
+    jLines.push({ account: pendapatanCode, accountName: pendapatanName, debit: 0, credit: totalPendapatan });
+
+    // Kredit: PPN Keluaran (Jika ada)
+    if (invData.totalPPN > 0) {
+        jLines.push({ account: DB.coa.utangPPN.code, accountName: DB.coa.utangPPN.name, debit: 0, credit: invData.totalPPN });
+    }
+
+    // Jika ada shipping / fee (bisa masuk ke pendapatan juga atau akun terpisah, sementara masuk pendapatan)
+    const extraPendapatan = (invData.shipping || 0) + (invData.txFee || 0);
+    if (extraPendapatan > 0) {
+        jLines.push({ account: pendapatanCode, accountName: pendapatanName, debit: 0, credit: extraPendapatan });
+    }
+
+    // Validasi keseimbangan internal (harus match dengan grandTotal)
+    createJournalEntry(invData.date, `Invoice Penjualan ${invData.id} - ${invData.customerName}`, jLines, invData.id);
 
     // Jurnal DP (jika ada uang muka saat buat invoice)
     if (invData.dp > 0) {
         const dpLines = [
             { account: invData.dpAccount || DB.coa.bankBCA.code, accountName: invData.dpAccountName || DB.coa.bankBCA.name, debit: invData.dp, credit: 0 },
-            { account: DB.coa.piutang.code, accountName: DB.coa.piutang.name, debit: 0, credit: invData.dp },
+            { account: piutangCode, accountName: piutangName, debit: 0, credit: invData.dp },
         ];
         createJournalEntry(invData.date, `DP Invoice ${invData.id} - ${invData.customerName}`, dpLines, invData.id);
     }
