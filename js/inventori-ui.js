@@ -101,7 +101,7 @@ function renderInventoryTable() {
             }
 
             html += `
-                <tr class="transition-colors group">
+                <tr class="transition-colors group hover:bg-dark-700/30 cursor-pointer" ondblclick="openMovementsModal('${p.id}')" title="Klik 2 kali untuk melihat detail pergerakan stok">
                     <td class="px-4 py-3 font-mono text-gray-400 text-xs">${p.sku || '-'}</td>
                     <td class="px-4 py-3">
                         <div class="font-medium text-white group-hover:text-blue-400 transition-colors">${p.name}</div>
@@ -256,3 +256,89 @@ function saveAdjustment() {
         alert("Gagal melakukan penyesuaian: " + res.error);
     }
 }
+
+// === DETAIL PERGERAKAN STOK (DOUBLE CLICK) ===
+
+window.openMovementsModal = function (productId) {
+    const product = window.VittaProduk ? window.VittaProduk.getProductById(productId) : null;
+    if (!product) return;
+
+    const existing = document.getElementById('modalMovements');
+    if (existing) existing.remove();
+
+    const movements = window.VittaInventory 
+        ? window.VittaInventory.getStockMovements().filter(m => m.product_id === productId)
+        : [];
+
+    const typeBadges = {
+        in: '<span class="bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded text-xs font-medium border border-emerald-500/20">Masuk</span>',
+        out: '<span class="bg-rose-500/10 text-rose-400 px-2.5 py-0.5 rounded text-xs font-medium border border-rose-500/20">Keluar</span>',
+        adjustment: '<span class="bg-purple-500/10 text-purple-400 px-2.5 py-0.5 rounded text-xs font-medium border border-purple-500/20">Penyesuaian</span>',
+        transfer: '<span class="bg-blue-500/10 text-blue-400 px-2.5 py-0.5 rounded text-xs font-medium border border-blue-500/20">Transfer</span>'
+    };
+
+    let movementsHtml = '';
+    if (movements.length === 0) {
+        movementsHtml = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500 text-sm">Belum ada riwayat transaksi masuk/keluar untuk produk ini.</td></tr>`;
+    } else {
+        movements.forEach(m => {
+            const dateStr = new Date(m.created_at || m.date).toLocaleString('id-ID', {
+                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const badge = typeBadges[m.tipe] || `<span class="bg-gray-500/10 text-gray-400 px-2 py-0.5 rounded text-xs font-medium">${m.tipe}</span>`;
+            const qtySign = m.qty > 0 ? '+' : '';
+            const qtyClass = m.qty > 0 ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold';
+            
+            movementsHtml += `
+                <tr class="border-b border-dark-700 text-xs hover:bg-dark-700/20 transition-colors">
+                    <td class="px-4 py-3 text-gray-400 font-medium">${dateStr}</td>
+                    <td class="px-4 py-3">${badge}</td>
+                    <td class="px-4 py-3 text-white font-mono">${m.reference_no || m.id || '-'}</td>
+                    <td class="px-4 py-3 text-gray-300 max-w-[200px] truncate" title="${m.memo || ''}">${m.memo || '-'}</td>
+                    <td class="px-4 py-3 text-right ${qtyClass}">${qtySign}${m.qty}</td>
+                    <td class="px-4 py-3 text-right font-medium text-white">${m.stock_after}</td>
+                </tr>
+            `;
+        });
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'modalMovements';
+    modal.className = 'fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in px-4';
+    modal.innerHTML = `
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl animate-fade-in-up">
+            <div class="p-6 border-b border-dark-700 flex justify-between items-center sticky top-0 bg-dark-800/90 backdrop-blur-sm rounded-t-2xl">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Riwayat Mutasi Barang</h3>
+                    <p class="text-xs text-gray-400 mt-1">${product.sku ? '[' + product.sku + '] ' : ''}${product.name}</p>
+                </div>
+                <button onclick="document.getElementById('modalMovements').remove()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto p-6 flex-1">
+                <table class="w-full text-left text-sm text-gray-300">
+                    <thead class="bg-dark-700/50 text-gray-400 border-b border-dark-700 text-xs uppercase tracking-wider sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold">Tanggal</th>
+                            <th class="px-4 py-3 font-semibold">Tipe</th>
+                            <th class="px-4 py-3 font-semibold">No. Ref</th>
+                            <th class="px-4 py-3 font-semibold">Catatan / Keterangan</th>
+                            <th class="px-4 py-3 font-semibold text-right">Kuantitas (Qty)</th>
+                            <th class="px-4 py-3 font-semibold text-right">Stok Akhir</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-dark-700 bg-dark-800/20">
+                        ${movementsHtml}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="p-4 border-t border-dark-700 bg-dark-800 flex justify-end rounded-b-2xl">
+                <button onclick="document.getElementById('modalMovements').remove()" class="px-5 py-2.5 bg-dark-700 hover:bg-dark-600 rounded-xl text-sm font-medium text-gray-300 transition-colors">Tutup</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+};

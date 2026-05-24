@@ -265,21 +265,37 @@
 
         // Jika tracked, catat stok awal ke ledger
         if (product.is_tracked && product.initial_stock > 0) {
-            // Kita butuh fungsi dari inventory-engine (jika ada) untuk mencatat pergerakan stok awal
             if (window.VittaInventory) {
                 const warehouses = window.VittaInventory.getWarehouses();
-                addStockLedger({
-                    product_id: product.id,
-                    type: 'INITIAL',
-                    reference_no: 'INITIAL',
-                    qty: product.initial_stock,
-                    unit_cost: product.buy_price,
-                    stock_before: 0,
-                    stock_after: product.initial_stock,
-                    notes: 'Stok awal saat pembuatan produk',
-                    created_by: product.created_by
-                });
+                const mainWhId = warehouses.length > 0 ? warehouses[0].id : 'WH-MAIN';
+                try {
+                    window.VittaInventory.recordStockMovement({
+                        product_id: product.id,
+                        warehouse_id: mainWhId,
+                        tipe: 'in',
+                        type_original: 'INITIAL',
+                        qty: product.initial_stock,
+                        hpp: product.buy_price,
+                        reference_id: 'INITIAL',
+                        memo: 'Stok awal saat pembuatan produk'
+                    });
+                } catch (e) {
+                    console.error("Gagal mencatat stok awal ke inventory-engine:", e);
+                }
             }
+            
+            // Catat juga ke local ledger untuk histori detail produk
+            addStockLedger({
+                product_id: product.id,
+                type: 'INITIAL',
+                reference_no: 'INITIAL',
+                qty: product.initial_stock,
+                unit_cost: product.buy_price,
+                stock_before: 0,
+                stock_after: product.initial_stock,
+                notes: 'Stok awal saat pembuatan produk',
+                created_by: product.created_by
+            });
         }
 
         return { success: true, product };
@@ -404,6 +420,27 @@
         const product = getProductById(productId);
         if (!product || !product.is_tracked) return { success: false, error: 'Produk tidak dilacak' };
 
+        // Determine signed qty
+        let signedQty = qty;
+        if (type === 'SALE' || type === 'RETURN_BUY') {
+            signedQty = -Math.abs(qty);
+        } else if (type === 'PURCHASE' || type === 'RETURN_SELL') {
+            signedQty = Math.abs(qty);
+        }
+
+        // Keep local static stock in vitta_products updated
+        const products = getProducts();
+        const idx = products.findIndex(p => p.id === productId);
+        let stockBefore = product.current_stock;
+        let stockAfter = product.current_stock + signedQty;
+
+        if (idx !== -1) {
+            stockBefore = parseFloat(products[idx].current_stock) || 0;
+            stockAfter = stockBefore + signedQty;
+            products[idx].current_stock = stockAfter;
+            saveProducts(products);
+        }
+
         if (window.VittaInventory) {
             // Default ke gudang utama
             const whList = window.VittaInventory.getWarehouses();
@@ -412,14 +449,11 @@
             
             // Map type
             let mappedType = 'in';
-            let signedQty = qty;
             
             if (type === 'PURCHASE' || type === 'RETURN_SELL') {
                 mappedType = 'in';
-                signedQty = Math.abs(qty);
             } else if (type === 'SALE' || type === 'RETURN_BUY') {
                 mappedType = 'out';
-                signedQty = -Math.abs(qty);
             } else {
                 mappedType = 'adjustment';
             }
@@ -435,12 +469,24 @@
                     reference_id: refNo,
                     memo: notes
                 });
-                return { success: true, stockBefore: product.current_stock, stockAfter: product.current_stock + signedQty };
+                return { success: true, stockBefore, stockAfter };
             } catch (e) {
                 return { success: false, error: e.message };
             }
+        } else {
+            // Fallback: catat ke local ledger untuk histori detail produk
+            addStockLedger({
+                product_id: productId,
+                type: type,
+                reference_no: refNo,
+                qty: signedQty,
+                unit_cost: unitCost || product.buy_price,
+                stock_before: stockBefore,
+                stock_after: stockAfter,
+                notes: notes || 'Fallback Stock Movement',
+            });
+            return { success: true, stockBefore, stockAfter };
         }
-        return { success: false, error: 'Inventory Engine tidak aktif' };
     }
 
     function updateStock(productId, qty) {

@@ -120,10 +120,6 @@ function recordStockMovement(data) {
     } else if (data.tipe === 'out' || (data.tipe === 'adjustment' && data.qty < 0)) {
         // Menggunakan HPP yang ada
         let outQty = Math.abs(data.qty);
-        if (oldQty < outQty) {
-            throw new Error(`Stok tidak mencukupi untuk produk ${data.product_id} di gudang ${data.warehouse_id}.`);
-        }
-        
         let outgoingNilai = outQty * invItem.hpp;
         invItem.qty -= outQty;
         invItem.total_nilai -= outgoingNilai;
