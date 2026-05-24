@@ -136,6 +136,31 @@ CREATE POLICY "Allow CRUD own products" ON public.akt_products
 CREATE POLICY "Allow CRUD own stock ledger" ON public.akt_stock_ledger
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+-- G. Master Kontak (Customer & Supplier)
+CREATE TABLE IF NOT EXISTS public.akt_contacts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_id UUID NOT NULL,
+    department_id UUID REFERENCES public.akt_departments(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    company VARCHAR(255),
+    number VARCHAR(100),
+    phone VARCHAR(50),
+    email VARCHAR(255),
+    address TEXT,
+    npwp VARCHAR(50),
+    nik VARCHAR(50),
+    notes TEXT,
+    type VARCHAR(50) DEFAULT 'Customer', -- Customer, Supplier, Keduanya
+    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE
+    ar_balance NUMERIC(20,2) DEFAULT 0.00,
+    ap_balance NUMERIC(20,2) DEFAULT 0.00
+);
+
+ALTER TABLE public.akt_contacts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow CRUD own contacts" ON public.akt_contacts
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
 -- ============================================================
 -- DATABASE INDEXES UNTUK OPTIMALISASI KINERJA (SCALABLE)
 -- ============================================================
@@ -144,6 +169,7 @@ CREATE INDEX IF NOT EXISTS idx_akt_journals_ref ON public.akt_journals(ref_id);
 CREATE INDEX IF NOT EXISTS idx_akt_journals_date ON public.akt_journals(date);
 CREATE INDEX IF NOT EXISTS idx_akt_products_sku ON public.akt_products(sku);
 CREATE INDEX IF NOT EXISTS idx_akt_stock_product ON public.akt_stock_ledger(product_id);
+CREATE INDEX IF NOT EXISTS idx_akt_contacts_name ON public.akt_contacts(name);
 
 -- ============================================================
 -- TRIGGER AUTOMATIC USER PROFILE CREATION
@@ -170,3 +196,4 @@ DROP TRIGGER IF EXISTS on_auth_user_created_akt ON auth.users;
 CREATE TRIGGER on_auth_user_created_akt
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_akt_user();
+

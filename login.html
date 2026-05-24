@@ -73,55 +73,35 @@
 
     <script src="js/auth.js"></script>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (typeof signInUser === 'undefined') {
+                alert('Modul otentikasi sedang dimuat. Silakan coba sesaat lagi.');
+                return;
+            }
             const username = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
-            if (username === 'budileo' && password === '484815') {
-                // Simpan sesi user (tanpa department_id tunggal)
-                localStorage.setItem('vitta_user', JSON.stringify({
-                    id: 'usr-budileo-001',
-                    username: 'budileo',
-                    role: 'OWNER'
-                }));
+            // Map 'budileo' ke email owner default
+            let loginEmail = username;
+            if (username === 'budileo') {
+                loginEmail = 'budileo@gmail.com';
+            }
 
-                // Hapus departemen aktif sebelumnya agar user harus memilih ulang
-                localStorage.removeItem('vitta_active_dept');
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "Memproses...";
 
-                // Pastikan ada data departemen mock untuk testing
-                if (!localStorage.getItem('vitta_mock_departments')) {
-                    localStorage.setItem('vitta_mock_departments', JSON.stringify([
-                        {
-                            id: 'dept-nusantara-001',
-                            name: 'Nusantara Mandiri',
-                            email: 'info@nusantaramandiri.com',
-                            address: 'Gedung Nusantara Tower Lt. 10, Jakarta Selatan',
-                            phone: '021-88899911',
-                            whatsapp: '081234567890',
-                            owner_name: 'Budi Leo',
-                            owner_phone: '081234567890',
-                            logo: '',
-                            invite_token: 'INV-NUSANTARA-001'
-                        },
-                        {
-                            id: 'dept-cabang-002',
-                            name: 'Cabang Surabaya',
-                            email: 'surabaya@nusantaramandiri.com',
-                            address: 'Jl. Pemuda No. 45, Surabaya',
-                            phone: '031-7771234',
-                            whatsapp: '082345678901',
-                            owner_name: 'Budi Leo',
-                            owner_phone: '081234567890',
-                            logo: '',
-                            invite_token: 'INV-SBY-002'
-                        }
-                    ]));
-                }
+            const { session, user, error } = await signInUser(loginEmail, password);
 
+            btn.disabled = false;
+            btn.innerText = originalText;
+
+            if (!error && session) {
                 window.location.href = 'index.html';
             } else {
-                alert('Login gagal. Silakan gunakan budileo / 484815 untuk uji coba Owner.');
+                alert('Login gagal: ' + (error ? error.message : 'Kredensial tidak valid. Gunakan budileo / 484825 jika belum diatur.'));
             }
         });
     </script>
