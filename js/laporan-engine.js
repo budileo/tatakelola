@@ -7,7 +7,7 @@ function buildTrialBalance(startDate, endDate) {
     if (!window.getJournals || !window.VittaCOA) return {};
     
     const journals = window.getJournals().filter(j => j.status === 'posted');
-    const accounts = window.VittaCOA.getAccounts();
+    const accounts = (window.VittaCOA.getAccounts() || []).filter(acc => acc && acc.code);
     const trialBalance = {};
     
     // Inisialisasi
@@ -22,7 +22,7 @@ function buildTrialBalance(startDate, endDate) {
 
         trialBalance[acc.code] = {
             name: acc.name,
-            category: acc.category,
+            category: acc.category || 'Unknown',
             type: type,
             debit: 0,
             credit: 0,
@@ -33,8 +33,10 @@ function buildTrialBalance(startDate, endDate) {
     // Akumulasi Jurnal
     journals.forEach(j => {
         if ((startDate && j.date < startDate) || (endDate && j.date > endDate)) return;
+        if (!j.lines || !Array.isArray(j.lines)) return;
         
         j.lines.forEach(line => {
+            if (!line || !line.account) return;
             if (!trialBalance[line.account]) {
                 const firstChar = line.account.charAt(0);
                 let type = 'Unknown';
@@ -45,7 +47,7 @@ function buildTrialBalance(startDate, endDate) {
                 else if (['5', '6', '8', '9'].includes(firstChar)) type = 'Expense';
 
                 trialBalance[line.account] = {
-                    name: line.accountName,
+                    name: line.accountName || 'Unnamed Account',
                     category: 'Unknown',
                     type: type,
                     debit: 0,
@@ -124,14 +126,16 @@ function generateNeraca(endDate) {
         if (acc.balance === 0) return;
         
         if (acc.type === 'Asset') {
-            if (acc.category.includes('Lancar') || acc.category.includes('Kas') || acc.category.includes('Persediaan') || acc.category.includes('Piutang')) {
+            const cat = acc.category || '';
+            if (cat.includes('Lancar') || cat.includes('Kas') || cat.includes('Persediaan') || cat.includes('Piutang')) {
                 report.aset.lancar.push(acc);
             } else {
                 report.aset.tetap.push(acc);
             }
             report.aset.total += acc.balance;
         } else if (acc.type === 'Liability') {
-            if (acc.category.includes('Hutang') || acc.category.includes('Lancar') || acc.category.includes('Pendek')) {
+            const cat = acc.category || '';
+            if (cat.includes('Hutang') || cat.includes('Lancar') || cat.includes('Pendek')) {
                 report.kewajiban.pendek.push(acc);
             } else {
                 report.kewajiban.panjang.push(acc);

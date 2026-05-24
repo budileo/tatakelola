@@ -261,7 +261,8 @@
 
     function loadAllAccounts() {
         try {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            return Array.isArray(data) ? data.filter(a => a && a.code) : [];
         } catch (e) { return []; }
     }
 
