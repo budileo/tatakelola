@@ -9,14 +9,34 @@ var formatDate = formatDate || ((d) => {
 
 // ========== VIEW NAVIGATION ==========
 function toggleView(view) {
+    const listEl = document.getElementById('listView');
+    const formEl = document.getElementById('formView');
+    const detailEl = document.getElementById('detailView');
+    const payEl = document.getElementById('payView');
+
+    if (listEl) listEl.classList.add('hidden');
+    if (formEl) formEl.classList.add('hidden');
+    if (detailEl) detailEl.classList.add('hidden');
+    if (payEl) payEl.classList.add('hidden');
+
     if (view === 'form') {
-        document.getElementById('listView').classList.add('hidden');
-        document.getElementById('formView').classList.remove('hidden');
-        document.getElementById('formView').classList.add('animate-fade-in-up');
+        if (formEl) {
+            formEl.classList.remove('hidden');
+            formEl.classList.add('animate-fade-in-up');
+        }
         initForm();
+    } else if (view === 'detail') {
+        if (detailEl) {
+            detailEl.classList.remove('hidden');
+            detailEl.classList.add('animate-fade-in-up');
+        }
+    } else if (view === 'pay') {
+        if (payEl) {
+            payEl.classList.remove('hidden');
+            payEl.classList.add('animate-fade-in-up');
+        }
     } else {
-        document.getElementById('formView').classList.add('hidden');
-        document.getElementById('listView').classList.remove('hidden');
+        if (listEl) listEl.classList.remove('hidden');
         renderTable();
     }
 }
