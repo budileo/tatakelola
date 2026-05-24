@@ -369,7 +369,7 @@ function renderPurchases(purs, startDate, endDate) {
 document.addEventListener('DOMContentLoaded', () => {
     // Set default month
     const d = new Date();
-    document.getElementById('filterMonth').value = \`\${d.getFullYear()}-\${String(d.getMonth()+1).padStart(2,'0')}\`;
+    document.getElementById('filterMonth').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
     
     // Check local storage or default to PL
     setTimeout(() => {
