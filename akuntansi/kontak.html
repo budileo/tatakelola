@@ -355,6 +355,8 @@
             }
         }
 
+        window.editContactId = null;
+
         // Format Currency
         const formatRp = (angka) => {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
@@ -362,49 +364,74 @@
 
         // Render Table
         function renderTable() {
+            const scopedRaw = localStorage.getItem(scopedKey);
+            if (scopedRaw) {
+                try {
+                    contacts = JSON.parse(scopedRaw);
+                } catch(e) { contacts = []; }
+            }
+
             const tbody = document.getElementById('contactTableBody');
             const search = document.getElementById('searchInput').value.toLowerCase();
             const filter = document.getElementById('filterType').value;
 
+            if (!tbody) return;
             tbody.innerHTML = '';
             
-            // Filter and Sort (Alphabetical by Nama)
+            // Filter and Sort (Alphabetical by Name)
             let filtered = contacts.filter(c => {
-                const matchSearch = c.nama.toLowerCase().includes(search) || c.email.toLowerCase().includes(search);
-                const matchFilter = filter === 'all' ? true : c.tipe === filter;
+                const name = c.name || c.nama || '';
+                const email = c.email || '';
+                const matchSearch = name.toLowerCase().includes(search) || email.toLowerCase().includes(search);
+                
+                const type = c.type || c.tipe || 'Customer';
+                const matchFilter = filter === 'all' ? true : type === filter;
                 return matchSearch && matchFilter;
-            }).sort((a, b) => a.nama.localeCompare(b.nama));
+            }).sort((a, b) => {
+                const nameA = a.name || a.nama || '';
+                const nameB = b.name || b.nama || '';
+                return nameA.localeCompare(nameB);
+            });
 
             let totalAR = 0;
             let totalAP = 0;
 
             filtered.forEach(c => {
-                totalAR += c.ar;
-                totalAP += c.ap;
+                const arVal = parseFloat(c.arBalance !== undefined ? c.arBalance : (c.ar !== undefined ? c.ar : 0));
+                const apVal = parseFloat(c.apBalance !== undefined ? c.apBalance : (c.ap !== undefined ? c.ap : 0));
                 
+                totalAR += arVal;
+                totalAP += apVal;
+                
+                const type = c.type || c.tipe || 'Customer';
                 let tipeBadge = '';
-                if(c.tipe === 'Customer') tipeBadge = `<span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs">Customer</span>`;
-                else if(c.tipe === 'Supplier') tipeBadge = `<span class="bg-rose-500/10 text-rose-400 px-2 py-1 rounded text-xs">Supplier</span>`;
+                if(type === 'Customer') tipeBadge = `<span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs">Customer</span>`;
+                else if(type === 'Supplier') tipeBadge = `<span class="bg-rose-500/10 text-rose-400 px-2 py-1 rounded text-xs">Supplier</span>`;
                 else tipeBadge = `<span class="bg-purple-500/10 text-purple-400 px-2 py-1 rounded text-xs">Keduanya</span>`;
 
-                let statusBadge = c.status 
+                const phone = c.phone || c.telepon || '-';
+                const email = c.email || '-';
+                const name = c.name || c.nama || '';
+                
+                const isActive = (c.status === true || c.statusText === 'ACTIVE' || c.status === 'ACTIVE');
+                let statusBadge = isActive 
                     ? `<span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs flex items-center justify-center w-max mx-auto"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Aktif</span>` 
                     : `<span class="bg-gray-500/10 text-gray-400 px-2 py-1 rounded text-xs flex items-center justify-center w-max mx-auto"><span class="w-1.5 h-1.5 rounded-full bg-gray-500 mr-1.5"></span> Nonaktif</span>`;
 
                 tbody.innerHTML += `
                     <tr class="border-b border-dark-700 hover:bg-dark-700/30 transition-colors">
                         <td class="px-4 py-3">
-                            <div class="font-medium text-white">${c.sapaan ? c.sapaan + ' ' : ''}${c.nama}</div>
-                            <div class="text-xs text-gray-500">${c.email}</div>
+                            <div class="font-medium text-white">${c.sapaan ? c.sapaan + ' ' : ''}${name}</div>
+                            <div class="text-xs text-gray-500">${email}</div>
                         </td>
                         <td class="px-4 py-3">${tipeBadge}</td>
-                        <td class="px-4 py-3">${c.telepon}</td>
-                        <td class="px-4 py-3 text-right text-orange-400 font-medium">${formatRp(c.ar)}</td>
-                        <td class="px-4 py-3 text-right text-rose-400 font-medium">${formatRp(c.ap)}</td>
+                        <td class="px-4 py-3">${phone}</td>
+                        <td class="px-4 py-3 text-right text-orange-400 font-medium">${formatRp(arVal)}</td>
+                        <td class="px-4 py-3 text-right text-rose-400 font-medium">${formatRp(apVal)}</td>
                         <td class="px-4 py-3 text-center">${statusBadge}</td>
                         <td class="px-4 py-3 text-center">
-                            <button class="text-blue-400 hover:text-blue-300 mx-1" title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
-                            <button class="text-gray-400 hover:text-white mx-1" title="Detail"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
+                            <button onclick="editContact('${c.id}')" class="text-blue-400 hover:text-blue-300 mx-1" title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                            <button onclick="deleteContact('${c.id}')" class="text-rose-400 hover:text-rose-300 mx-1" title="Hapus"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </td>
                     </tr>
                 `;
@@ -418,20 +445,83 @@
 
         // Modal Functions
         function openModal() {
+            window.editContactId = null;
             document.getElementById('contactForm').reset();
             document.getElementById('contactModal').classList.remove('hidden');
-            // Small delay for transition
             setTimeout(() => {
                 document.getElementById('modalContent').classList.remove('scale-95', 'opacity-0');
             }, 10);
-            updateAccountDefaults(); // Reset account validation
+            updateAccountDefaults();
+        }
+
+        function editContact(id) {
+            const c = contacts.find(item => item.id === id);
+            if (!c) return;
+
+            window.editContactId = id;
+            
+            document.getElementById('inputSapaan').value = c.sapaan || '';
+            document.getElementById('inputNama').value = c.name || c.nama || '';
+            document.getElementById('inputPerusahaan').value = c.company || c.perusahaan || '';
+            document.getElementById('inputTelepon').value = c.phone || c.telepon || '';
+            document.getElementById('inputEmail').value = c.email || '';
+            document.getElementById('inputAlamat').value = c.address || c.alamat || '';
+            document.getElementById('inputKota').value = c.kota || '';
+            document.getElementById('inputProvinsi').value = c.provinsi || '';
+            document.getElementById('inputKodePos').value = c.kodePos || '';
+            document.getElementById('inputNPWP').value = c.npwp || '';
+            document.getElementById('inputNIK').value = c.nik || '';
+            document.getElementById('inputCatatan').value = c.notes || c.catatan || '';
+            document.getElementById('inputTipe').value = c.type || c.tipe || 'Customer';
+            
+            const isActive = (c.status === true || c.statusText === 'ACTIVE' || c.status === 'ACTIVE');
+            document.getElementById('inputStatus').checked = isActive;
+            
+            document.getElementById('inputTermin').value = c.termin || 'Cash';
+            document.getElementById('inputPajak').value = c.pajak || 'Non PPN';
+            document.getElementById('inputMataUang').value = c.mataUang || 'IDR';
+            document.getElementById('inputAkunAR').value = c.arCode || '1102 - Piutang Usaha IDR';
+            document.getElementById('inputAkunAP').value = c.apCode || '2101 - Hutang Usaha IDR';
+
+            document.getElementById('contactModal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modalContent').classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        function deleteContact(id) {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: "Kontak ini akan dihapus secara permanen dari cloud database!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#rose-600',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                background: '#1f2937', color: '#fff'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    contacts = contacts.filter(item => item.id !== id);
+                    localStorage.setItem(scopedKey, JSON.stringify(contacts));
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Dihapus!',
+                        text: 'Kontak berhasil dihapus.',
+                        background: '#1f2937', color: '#fff',
+                        showConfirmButton: false, timer: 1500
+                    });
+                    renderTable();
+                }
+            });
         }
 
         function closeModal() {
             document.getElementById('modalContent').classList.add('scale-95', 'opacity-0');
             setTimeout(() => {
                 document.getElementById('contactModal').classList.add('hidden');
-            }, 200); // Wait for transition
+            }, 200);
         }
 
         // Expandable Content
@@ -498,10 +588,11 @@
             const telepon = document.getElementById('inputTelepon').value;
             const email = document.getElementById('inputEmail').value;
 
-            // Duplication Check (Name + Phone or Email)
+            // Duplication Check (Name + Phone/Email) - Exclude self on edit
             const isDuplicate = contacts.some(c => 
-                c.nama.toLowerCase() === nama.toLowerCase() && 
-                (c.telepon === telepon || (email && c.email === email))
+                c.id !== window.editContactId &&
+                (c.name || c.nama || '').toLowerCase() === nama.toLowerCase() && 
+                ((c.phone || c.telepon) === telepon || (email && c.email === email))
             );
 
             if(isDuplicate) {
@@ -515,18 +606,55 @@
                 return;
             }
 
-            // Save logic (Mock)
-            contacts.push({
-                id: 'C' + String(contacts.length + 1).padStart(3, '0'),
+            const contactData = {
                 sapaan: document.getElementById('inputSapaan').value,
-                nama: nama,
-                tipe: tipe,
-                telepon: telepon,
+                name: nama,
+                nama: nama, // dual support
+                company: document.getElementById('inputPerusahaan').value,
+                perusahaan: document.getElementById('inputPerusahaan').value, // dual support
+                phone: telepon,
+                telepon: telepon, // dual support
                 email: email,
-                ar: 0,
-                ap: 0,
-                status: document.getElementById('inputStatus').checked
-            });
+                address: document.getElementById('inputAlamat').value,
+                alamat: document.getElementById('inputAlamat').value, // dual support
+                kota: document.getElementById('inputKota').value,
+                provinsi: document.getElementById('inputProvinsi').value,
+                kodePos: document.getElementById('inputKodePos').value,
+                npwp: document.getElementById('inputNPWP').value,
+                nik: document.getElementById('inputNIK').value,
+                notes: document.getElementById('inputCatatan').value,
+                catatan: document.getElementById('inputCatatan').value, // dual support
+                type: tipe,
+                tipe: tipe, // dual support
+                status: document.getElementById('inputStatus').checked,
+                termin: document.getElementById('inputTermin').value,
+                pajak: document.getElementById('inputPajak').value,
+                mataUang: document.getElementById('inputMataUang').value,
+                arCode: document.getElementById('inputAkunAR').value,
+                apCode: document.getElementById('inputAkunAP').value
+            };
+
+            if (window.editContactId) {
+                // Edit mode
+                const idx = contacts.findIndex(c => c.id === window.editContactId);
+                if (idx !== -1) {
+                    contactData.id = window.editContactId;
+                    contactData.arBalance = contacts[idx].arBalance || contacts[idx].ar || 0;
+                    contactData.ar = contacts[idx].ar || 0;
+                    contactData.apBalance = contacts[idx].apBalance || contacts[idx].ap || 0;
+                    contactData.ap = contacts[idx].ap || 0;
+                    contacts[idx] = contactData;
+                }
+            } else {
+                // Add mode
+                contactData.id = 'CON_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4);
+                contactData.arBalance = 0;
+                contactData.ar = 0;
+                contactData.apBalance = 0;
+                contactData.ap = 0;
+                contacts.push(contactData);
+            }
+
             localStorage.setItem(scopedKey, JSON.stringify(contacts));
 
             Swal.fire({
@@ -540,6 +668,11 @@
             closeModal();
             renderTable();
         }
+
+        // Pemicu dari auto-renderer di auth.js
+        window.renderTable = function() {
+            renderTable();
+        };
 
         // Init
         document.addEventListener('DOMContentLoaded', () => {

@@ -96,20 +96,35 @@
     }
 
     function mapContactToDb(c) {
+        const nameVal = c.name || c.nama || '';
+        const phoneVal = c.phone || c.telepon || '';
+        const companyVal = c.company || c.perusahaan || '';
+        const addressVal = c.address || c.alamat || '';
+        const notesVal = c.notes || c.catatan || '';
+        const typeVal = c.type || c.tipe || 'Customer';
+        
+        let statusVal = 'ACTIVE';
+        if (c.status === false || c.status === 'INACTIVE') {
+            statusVal = 'INACTIVE';
+        }
+
+        const arVal = parseFloat(c.arBalance !== undefined ? c.arBalance : (c.ar !== undefined ? c.ar : 0));
+        const apVal = parseFloat(c.apBalance !== undefined ? c.apBalance : (c.ap !== undefined ? c.ap : 0));
+
         return {
-            name: c.name || '',
-            company: c.company || '',
+            name: nameVal,
+            company: companyVal,
             number: c.number || '',
-            phone: c.phone || '',
+            phone: phoneVal,
             email: c.email || '',
-            address: c.address || '',
+            address: addressVal,
             npwp: c.npwp || '',
             nik: c.nik || '',
-            notes: c.notes || '',
-            type: c.type || 'Customer',
-            status: c.status || 'ACTIVE',
-            ar_balance: parseFloat(c.arBalance || c.ar_balance) || 0.00,
-            ap_balance: parseFloat(c.apBalance || c.ap_balance) || 0.00
+            notes: notesVal,
+            type: typeVal,
+            status: statusVal,
+            ar_balance: arVal,
+            ap_balance: apVal
         };
     }
 
@@ -198,21 +213,32 @@
     }
 
     function mapContactToLocal(c) {
+        const arVal = parseFloat(c.ar_balance) || 0.00;
+        const apVal = parseFloat(c.ap_balance) || 0.00;
         return {
             id: c.id,
             name: c.name,
+            nama: c.name, // Support both!
             company: c.company,
+            perusahaan: c.company, // Support both!
             number: c.number,
             phone: c.phone,
+            telepon: c.phone, // Support both!
             email: c.email,
             address: c.address,
+            alamat: c.address, // Support both!
             npwp: c.npwp,
             nik: c.nik,
             notes: c.notes,
+            catatan: c.notes, // Support both!
             type: c.type,
-            status: c.status,
-            arBalance: parseFloat(c.ar_balance) || 0.00,
-            apBalance: parseFloat(c.ap_balance) || 0.00
+            tipe: c.type, // Support both!
+            status: c.status === 'ACTIVE', // Support both boolean and string
+            statusText: c.status,
+            arBalance: arVal,
+            ar: arVal, // Support both!
+            apBalance: apVal,
+            ap: apVal // Support both!
         };
     }
 
