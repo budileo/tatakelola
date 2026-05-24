@@ -312,6 +312,28 @@ function voidInvoice(invoiceId) {
     const invoices = getInvoices();
     const idx = invoices.findIndex(inv => inv.id === invoiceId);
     if (idx === -1) return;
+    
+    const inv = invoices[idx];
+
+    // Reverse Stock Movement (Kembalikan stok barang yang keluar)
+    if (window.VittaProduk && inv.items) {
+        inv.items.forEach(item => {
+            if (item.productId) {
+                window.VittaProduk.processStockMovement(item.productId, 'RETURN_SELL', item.qty, inv.id, item.price, `Void Invoice ${inv.id}`);
+            }
+        });
+    }
+
+    // Void Jurnal terkait jika ada
+    if (window.getJournals && window.voidJournal) {
+        const journals = window.getJournals();
+        journals.forEach(j => {
+            if (j.refId === invoiceId && j.status !== 'void') {
+                window.voidJournal(j.id, "Pembatalan Invoice Penjualan");
+            }
+        });
+    }
+
     invoices[idx].status = 'void';
     saveData(KEYS.invoices, invoices);
     addAudit('INVOICE_VOIDED', invoiceId, `Invoice ${invoiceId} dibatalkan (void).`);

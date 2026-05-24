@@ -687,9 +687,19 @@ function voidPurchase(id) {
 function deletePurchase(id) {
     if (!confirm('Apakah Anda yakin ingin menghapus permanen Purchase Order ini? Tindakan ini menghapus seluruh pembayaran dan mutasi persediaan terkait.')) return;
     
-    // Hapus dari localStorage
     const key = window.getScopedKey ? window.getScopedKey('vitta_purchases') : 'vitta_purchases';
     const purchases = JSON.parse(localStorage.getItem(key)) || [];
+    const pur = purchases.find(p => p.id === id);
+
+    // Reverse Stock Movement (Kurangi kembali stok barang yang dibeli)
+    if (pur && window.VittaProduk && pur.items) {
+        pur.items.forEach(item => {
+            if (item.productId) {
+                window.VittaProduk.processStockMovement(item.productId, 'RETURN_BUY', item.qty, pur.id, item.price, `Hapus Pembelian ${pur.id}`);
+            }
+        });
+    }
+
     const filtered = purchases.filter(p => p.id !== id);
     localStorage.setItem(key, JSON.stringify(filtered));
 

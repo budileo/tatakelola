@@ -116,8 +116,30 @@ function printPaymentReceipt(invId, payId) {
 
 function deleteInvoice(invId) {
     if (!confirm('Hapus invoice ' + invId + '? Data tidak bisa dikembalikan.')) return;
-    const invoices = getInvoices().filter(i => i.id !== invId);
-    saveData(KEYS.invoices, invoices);
+    const invoices = getInvoices();
+    const inv = invoices.find(i => i.id === invId);
+    
+    // Reverse Stock Movement (Pulihkan stok barang yang terjual)
+    if (inv && window.VittaProduk && inv.items) {
+        inv.items.forEach(item => {
+            if (item.productId) {
+                window.VittaProduk.processStockMovement(item.productId, 'RETURN_SELL', item.qty, inv.id, item.price, `Hapus Invoice ${inv.id}`);
+            }
+        });
+    }
+
+    // Void Jurnal terkait jika ada
+    if (window.voidJournal && window.getJournals) {
+        const journals = window.getJournals();
+        journals.forEach(j => {
+            if (j.refId === invId && j.status !== 'void') {
+                window.voidJournal(j.id, "Penghapusan Invoice Penjualan");
+            }
+        });
+    }
+
+    const filtered = invoices.filter(i => i.id !== invId);
+    saveData(KEYS.invoices, filtered);
     addAudit('INVOICE_DELETED', invId, `Invoice ${invId} dihapus.`);
     alert('Invoice dihapus.'); showView('list');
 }
@@ -126,6 +148,28 @@ function returInvoice(invId) {
     const invoices = getInvoices();
     const idx = invoices.findIndex(i => i.id === invId);
     if (idx === -1) return;
+    
+    const inv = invoices[idx];
+
+    // Reverse Stock Movement (Pulihkan stok barang karena retur)
+    if (window.VittaProduk && inv.items) {
+        inv.items.forEach(item => {
+            if (item.productId) {
+                window.VittaProduk.processStockMovement(item.productId, 'RETURN_SELL', item.qty, inv.id, item.price, `Retur Invoice ${inv.id}`);
+            }
+        });
+    }
+
+    // Void Jurnal terkait jika ada
+    if (window.voidJournal && window.getJournals) {
+        const journals = window.getJournals();
+        journals.forEach(j => {
+            if (j.refId === invId && j.status !== 'void') {
+                window.voidJournal(j.id, "Retur Invoice Penjualan");
+            }
+        });
+    }
+
     invoices[idx].status = 'retur';
     saveData(KEYS.invoices, invoices);
     addAudit('INVOICE_RETUR', invId, `Invoice ${invId} diretur.`);

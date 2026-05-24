@@ -218,6 +218,17 @@ function voidPurchase(purchaseId) {
     const idx = purchases.findIndex(p => p.id === purchaseId);
     if (idx === -1) return;
     
+    const pur = purchases[idx];
+
+    // Reverse Stock Movement (Kurangi kembali stok barang yang dibeli)
+    if (window.VittaProduk && pur.items) {
+        pur.items.forEach(item => {
+            if (item.productId) {
+                window.VittaProduk.processStockMovement(item.productId, 'RETURN_BUY', item.qty, pur.id, item.price, `Void Pembelian ${pur.id}`);
+            }
+        });
+    }
+
     purchases[idx].status = 'void';
     savePurchases(purchases);
     

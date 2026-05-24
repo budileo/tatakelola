@@ -196,6 +196,8 @@ function generateArusKas(startDate, endDate) {
 function generateLaporanPenjualan(startDate, endDate) {
     if (typeof getInvoices !== 'function') return { items: [], total: 0 };
     let invs = getInvoices();
+    // Saring transaksi: KELUARKAN yang berstatus 'void' atau 'retur'
+    invs = invs.filter(i => i.status !== 'void' && i.status !== 'retur');
     if (startDate) invs = invs.filter(i => i.date >= startDate);
     if (endDate) invs = invs.filter(i => i.date <= endDate);
     
@@ -208,6 +210,8 @@ function generateLaporanPenjualan(startDate, endDate) {
 function generateLaporanPembelian(startDate, endDate) {
     if (typeof getPurchases !== 'function') return { items: [], total: 0 };
     let purs = getPurchases();
+    // Saring transaksi: KELUARKAN yang berstatus 'void'
+    purs = purs.filter(p => p.status !== 'void');
     if (startDate) purs = purs.filter(p => p.date >= startDate);
     if (endDate) purs = purs.filter(p => p.date <= endDate);
     
