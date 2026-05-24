@@ -89,7 +89,31 @@
 
     function getProducts() {
         try { 
-            let prods = JSON.parse(localStorage.getItem(getScopedKey(STORAGE_KEY))) || [];
+            const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+            const activeDeptId = activeDept ? activeDept.id : null;
+            const scopedKey = getScopedKey(STORAGE_KEY);
+            
+            let prods = [];
+            const scopedRaw = localStorage.getItem(scopedKey);
+            
+            if (scopedRaw) {
+                prods = JSON.parse(scopedRaw) || [];
+            } else {
+                // Try migrating from legacy unscoped key 'vitta_products'
+                const legacyRaw = localStorage.getItem(STORAGE_KEY);
+                if (legacyRaw) {
+                    const legacyProds = JSON.parse(legacyRaw) || [];
+                    if (legacyProds.length > 0 && activeDeptId) {
+                        prods = legacyProds.map(p => {
+                            p.department_id = activeDeptId;
+                            return p;
+                        });
+                        // Save migrated to scoped key
+                        localStorage.setItem(scopedKey, JSON.stringify(prods));
+                    }
+                }
+            }
+
             if (window.VittaInventory) {
                 prods = prods.map(p => {
                     if (p.is_tracked) {
@@ -232,17 +256,37 @@
 
         // Initial stock ledger entry
         if (product.is_tracked && product.initial_stock > 0) {
-            addStockLedger({
-                product_id: product.id,
-                type: 'INITIAL',
-                reference_no: 'INITIAL',
-                qty: product.initial_stock,
-                unit_cost: product.buy_price,
-                stock_before: 0,
-                stock_after: product.initial_stock,
-                notes: 'Stok awal saat pembuatan produk',
-                created_by: product.created_by
-            });
+            if (window.VittaInventory) {
+                const warehouses = window.VittaInventory.getWarehouses();
+                const whId = warehouses.length > 0 ? warehouses[0].id : 'WH-MAIN';
+                try {
+                    window.VittaInventory.recordStockMovement({
+                        product_id: product.id,
+                        warehouse_id: whId,
+                        tipe: 'in',
+                        type_original: 'INITIAL',
+                        qty: product.initial_stock,
+                        hpp: product.buy_price,
+                        reference_id: 'INITIAL',
+                        memo: 'Stok awal saat pembuatan produk',
+                        created_by: product.created_by
+                    });
+                } catch (e) {
+                    console.error("Gagal merekam stok awal di VittaInventory:", e);
+                }
+            } else {
+                addStockLedger({
+                    product_id: product.id,
+                    type: 'INITIAL',
+                    reference_no: 'INITIAL',
+                    qty: product.initial_stock,
+                    unit_cost: product.buy_price,
+                    stock_before: 0,
+                    stock_after: product.initial_stock,
+                    notes: 'Stok awal saat pembuatan produk',
+                    created_by: product.created_by
+                });
+            }
         }
 
         return { success: true, product };

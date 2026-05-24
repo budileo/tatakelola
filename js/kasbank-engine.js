@@ -176,6 +176,23 @@ function getAccountName(code) {
     return code;
 }
 
+function getNextKasBankCode() {
+    if (!window.VittaCOA) return '1-10004';
+    const accounts = window.VittaCOA.getAccounts().filter(a => a.category === 'Kas & Bank');
+    let maxNum = 10003;
+    accounts.forEach(a => {
+        const parts = a.code.split('-');
+        if (parts.length === 2 && parts[0] === '1') {
+            const num = parseInt(parts[1], 10);
+            if (!isNaN(num) && num > maxNum) {
+                maxNum = num;
+            }
+        }
+    });
+    return '1-' + (maxNum + 1);
+}
+window.getNextKasBankCode = getNextKasBankCode;
+
 // Supaya kasbank.html tetap jalan tanpa crash jika getJournals dicari global
 window.getJournals = window.getJournals || (() => []);
 

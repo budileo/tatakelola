@@ -1,10 +1,11 @@
 // ========== HELPERS ==========
-const formatRp = (num) => 'Rp ' + Math.round(num || 0).toLocaleString('id-ID');
-const formatDate = (d) => {
+var formatRp = formatRp || ((num) => 'Rp ' + Math.round(num || 0).toLocaleString('id-ID'));
+var formatDate = formatDate || ((d) => {
     if (!d) return '-';
     const dt = new Date(d);
     return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+});
+
 
 // ========== VIEW NAVIGATION ==========
 function toggleView(view) {

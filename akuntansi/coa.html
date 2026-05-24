@@ -60,13 +60,13 @@
                     <div class="flex w-full md:w-auto">
                         <input type="text" placeholder="Cari Kode atau Nama Akun..." class="w-full md:w-80 bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors">
                     </div>
-                    <div class="flex space-x-2 border-b border-dark-700 w-full md:w-auto pb-1">
-                        <button class="px-3 py-1 text-sm font-medium text-blue-400 border-b-2 border-blue-500">Semua</button>
-                        <button class="px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300">1 - Aset</button>
-                        <button class="px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300">2 - Kewajiban</button>
-                        <button class="px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300">3 - Ekuitas</button>
-                        <button class="px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300">4 - Pendapatan</button>
-                        <button class="px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300">5 - Beban</button>
+                    <div class="flex space-x-2 border-b border-dark-700 w-full md:w-auto pb-1" id="filterTabs">
+                        <button class="filter-btn px-3 py-1 text-sm font-medium text-blue-400 border-b-2 border-blue-500" data-group="all">Semua</button>
+                        <button class="filter-btn px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300" data-group="1">1 - Aset</button>
+                        <button class="filter-btn px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300" data-group="2">2 - Kewajiban</button>
+                        <button class="filter-btn px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300" data-group="3">3 - Ekuitas</button>
+                        <button class="filter-btn px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300" data-group="4">4 - Pendapatan</button>
+                        <button class="filter-btn px-3 py-1 text-sm font-medium text-gray-400 hover:text-gray-300" data-group="5">5 - Beban</button>
                     </div>
                 </div>
 
@@ -104,12 +104,26 @@
             
             const tbody = document.getElementById('coaTbody');
             const searchInput = document.querySelector('input[placeholder="Cari Kode atau Nama Akun..."]');
+            let activeGroupFilter = 'all';
             
             function renderCOA(filter = '') {
                 const accounts = window.VittaCOA.getAccounts().sort((a, b) => a.code.localeCompare(b.code));
                 
+                // Filter by category group first
+                let filteredAccounts = accounts;
+                if (activeGroupFilter !== 'all') {
+                    filteredAccounts = accounts.filter(a => {
+                        if (activeGroupFilter === '1') return a.code.startsWith('1-');
+                        if (activeGroupFilter === '2') return a.code.startsWith('2-');
+                        if (activeGroupFilter === '3') return a.code.startsWith('3-');
+                        if (activeGroupFilter === '4') return a.code.startsWith('4-') || a.code.startsWith('7-');
+                        if (activeGroupFilter === '5') return a.code.startsWith('5-') || a.code.startsWith('6-') || a.code.startsWith('8-') || a.code.startsWith('9-');
+                        return true;
+                    });
+                }
+
                 // Group accounts by 'group' property
-                const grouped = accounts.reduce((acc, account) => {
+                const grouped = filteredAccounts.reduce((acc, account) => {
                     const term = filter.toLowerCase();
                     if (term && !account.name.toLowerCase().includes(term) && !account.code.toLowerCase().includes(term)) {
                         return acc;
@@ -179,6 +193,22 @@
                     renderCOA(e.target.value);
                 });
             }
+
+            // Tab listeners
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => {
+                        b.classList.remove('text-blue-400', 'border-b-2', 'border-blue-500');
+                        b.classList.add('text-gray-400', 'hover:text-gray-300');
+                    });
+                    btn.classList.remove('text-gray-400', 'hover:text-gray-300');
+                    btn.classList.add('text-blue-400', 'border-b-2', 'border-blue-500');
+                    
+                    activeGroupFilter = btn.dataset.group;
+                    renderCOA(searchInput ? searchInput.value : '');
+                });
+            });
         });
     </script>
 </body>

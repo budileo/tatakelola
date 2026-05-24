@@ -1,4 +1,5 @@
-const formatRp = (num) => 'Rp ' + Math.round(num).toLocaleString('id-ID');
+var formatRp = formatRp || ((num) => 'Rp ' + Math.round(num).toLocaleString('id-ID'));
+
 
 function toggleReport(type) {
     const types = ['pl', 'bs', 'cf', 'sales', 'purchases'];

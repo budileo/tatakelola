@@ -525,6 +525,9 @@
         // === MODAL ADD ACCOUNT ===
         function openModalAddAccount() {
             document.getElementById('addAccountForm').reset();
+            if (typeof window.getNextKasBankCode === 'function') {
+                document.getElementById('accCode').value = window.getNextKasBankCode();
+            }
             document.getElementById('addAccountModal').classList.remove('hidden');
         }
         function closeModalAddAccount() {

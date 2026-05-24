@@ -1,8 +1,9 @@
 // inventori-ui.js
 
-const formatRp = (num) => {
+var formatRp = formatRp || ((num) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num || 0);
-};
+});
+
 
 document.addEventListener('DOMContentLoaded', () => {
     renderInventoryTable();

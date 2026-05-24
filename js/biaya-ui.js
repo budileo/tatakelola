@@ -1,11 +1,12 @@
 // ========== HELPERS ==========
-const formatRp = (num) => 'Rp ' + Math.round(num || 0).toLocaleString('id-ID');
-const formatDate = (d) => {
+var formatRp = formatRp || ((num) => 'Rp ' + Math.round(num || 0).toLocaleString('id-ID'));
+var formatDate = formatDate || ((d) => {
     if (!d) return '-';
     const dt = new Date(d);
     return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-var today = () => new Date().toISOString().split('T')[0];
+});
+var today = today || (() => new Date().toISOString().split('T')[0]);
+
 
 function toggleView(view) {
     if (view === 'form') {
