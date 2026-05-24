@@ -198,6 +198,28 @@
                 overlay.remove();
                 // Trigger event inisialisasi kustom untuk mesin halaman jika ada
                 window.dispatchEvent(new Event('vitta-saas-ready'));
+
+                // Pemicu penyegaran otomatis halaman setelah sinkronisasi Cloud berhasil
+                const renderFunctions = [
+                    'renderTable', 
+                    'renderTransactions', 
+                    'generateReports', 
+                    'loadAccounts', 
+                    'loadProducts', 
+                    'initPage', 
+                    'loadData',
+                    'refreshData'
+                ];
+                renderFunctions.forEach(fnName => {
+                    if (typeof window[fnName] === 'function') {
+                        console.log(`🔄 Menyegarkan tampilan halaman via ${fnName}()...`);
+                        try {
+                            window[fnName]();
+                        } catch (e) {
+                            console.warn(`Gagal menyegarkan ${fnName}:`, e);
+                        }
+                    }
+                });
             }, 400);
 
         } catch (err) {

@@ -259,15 +259,24 @@
         return journals.some(j => j.lines && j.lines.some(l => l.account === accountCode));
     }
 
+    function getScopedKey(baseKey) {
+        if (window.getScopedKey) return window.getScopedKey(baseKey);
+        const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+        if (activeDept && activeDept.id) {
+            return activeDept.id + '_' + baseKey;
+        }
+        return baseKey;
+    }
+
     function loadAllAccounts() {
         try {
-            const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            const data = JSON.parse(localStorage.getItem(getScopedKey(STORAGE_KEY))) || [];
             return Array.isArray(data) ? data.filter(a => a && a.code) : [];
         } catch (e) { return []; }
     }
 
     function saveAllAccounts(accounts) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+        localStorage.setItem(getScopedKey(STORAGE_KEY), JSON.stringify(accounts));
     }
 
     function getAccounts() {
