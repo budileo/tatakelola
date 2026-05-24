@@ -20,39 +20,16 @@
 
     const basePath = inSubfolder ? '../' : '';
 
-    // URL script yang perlu diinjeksi secara dinamis
-    const scriptsToLoad = [
-        'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-        basePath + 'js/supabase-config.js',
-        basePath + 'js/supabase-auth.js',
-        basePath + 'js/supabase-db.js',
-        basePath + 'js/supabase-sync.js'
-    ];
+    // Injeksi skrip secara SINKRONUS agar dimuat SEBELUM mesin ERP (seperti coa-engine.js) dijalankan
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>');
+    document.write('<script src="' + basePath + 'js/supabase-config.js"></script>');
+    document.write('<script src="' + basePath + 'js/supabase-auth.js"></script>');
+    document.write('<script src="' + basePath + 'js/supabase-db.js"></script>');
+    document.write('<script src="' + basePath + 'js/supabase-sync.js"></script>');
 
-    // Fungsi dynamic script loader berurutan
-    function loadScripts(urls, callback) {
-        let index = 0;
-        function loadNext() {
-            if (index < urls.length) {
-                const url = urls[index++];
-                const script = document.createElement('script');
-                script.src = url;
-                script.onload = loadNext;
-                script.onerror = function() {
-                    console.error("⚠️ Gagal memuat script Supabase: " + url);
-                    loadNext();
-                };
-                document.head.appendChild(script);
-            } else {
-                callback();
-            }
-        }
-        loadNext();
-    }
-
-    // Jalankan injeksi berkas di head dokumen
-    loadScripts(scriptsToLoad, function() {
-        console.log("⚙️ Seluruh modul Supabase SaaS berhasil diinjeksi ke halaman.");
+    // Tunggu sesaat untuk inisialisasi alur SaaS Supabase di akhir pemuatan DOM
+    window.addEventListener('DOMContentLoaded', function() {
+        console.log("⚙️ Seluruh modul Supabase SaaS berhasil dimuat secara sinkronus.");
         initializeSaasFlow();
     });
 

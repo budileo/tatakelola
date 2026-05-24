@@ -117,21 +117,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Populate user info from session
-    if (window.VITTA_USER) {
-        const user = window.VITTA_USER;
-        const dept = window.getVittaDept ? window.getVittaDept() : null;
-        const initial = (user.username || 'U').charAt(0).toUpperCase();
+    function populateSidebarUser() {
+        if (window.VITTA_USER) {
+            const user = window.VITTA_USER;
+            const dept = window.getVittaDept ? window.getVittaDept() : null;
+            
+            const displayName = user.full_name || user.username || user.email || 'User Pemilik';
+            const initial = displayName.charAt(0).toUpperCase();
 
-        const elInitial = document.getElementById('sidebarUserInitial');
-        const elName = document.getElementById('sidebarUserName');
-        const elRole = document.getElementById('sidebarUserRole');
-        const elDept = document.getElementById('sidebarUserDept');
+            const elInitial = document.getElementById('sidebarUserInitial');
+            const elName = document.getElementById('sidebarUserName');
+            const elRole = document.getElementById('sidebarUserRole');
+            const elDept = document.getElementById('sidebarUserDept');
 
-        if (elInitial) elInitial.textContent = initial;
-        if (elName) elName.textContent = user.username || 'User';
-        if (elRole) elRole.textContent = user.role || '-';
-        if (elDept) elDept.textContent = dept ? dept.name : 'Departemen Tidak Ditemukan';
+            if (elInitial) elInitial.textContent = initial;
+            if (elName) elName.textContent = displayName;
+            if (elRole) elRole.textContent = user.role || '-';
+            if (elDept) elDept.textContent = dept ? dept.name : 'Tata Kelola';
+        }
     }
+
+    populateSidebarUser();
+    window.addEventListener('vitta-saas-ready', populateSidebarUser);
 
     // Handle Back to Index Toggle
     const toggleBtn = document.getElementById('toggleBackToIndex');
