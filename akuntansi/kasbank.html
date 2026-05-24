@@ -391,7 +391,8 @@
 
             let html = '';
             journals.forEach(j => {
-                if(!j.lines) return;
+                if (j.status !== 'posted') return;
+                if (!j.lines) return;
                 
                 // Cari baris yang mengandung kas/bank
                 let isRelevant = false;
