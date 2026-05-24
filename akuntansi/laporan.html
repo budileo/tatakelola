@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <script>
+        window.addEventListener('error', function(e) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '0';
+            errorDiv.style.left = '0';
+            errorDiv.style.width = '100%';
+            errorDiv.style.backgroundColor = '#ef4444';
+            errorDiv.style.color = '#ffffff';
+            errorDiv.style.padding = '20px';
+            errorDiv.style.zIndex = '99999';
+            errorDiv.style.fontFamily = 'monospace';
+            errorDiv.style.fontSize = '14px';
+            errorDiv.style.whiteSpace = 'pre-wrap';
+            errorDiv.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+            errorDiv.innerHTML = `<strong>⚠️ RUNTIME ERROR:</strong><br>${e.message}<br><br><strong>Source:</strong> ${e.filename}:${e.lineno}:${e.colno}<br><br><strong>Stack:</strong> ${e.error ? e.error.stack : 'N/A'}`;
+            document.body.appendChild(errorDiv);
+        });
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Keuangan - Vitta ERP</title>
