@@ -443,6 +443,15 @@
         return { success: false, error: 'Inventory Engine tidak aktif' };
     }
 
+    function updateStock(productId, qty) {
+        const products = getProducts();
+        const idx = products.findIndex(p => p.id === productId);
+        if (idx === -1) return { success: false, error: 'Produk tidak ditemukan' };
+        products[idx].current_stock = parseFloat(qty) || 0;
+        saveProducts(products);
+        return { success: true, product: products[idx] };
+    }
+
     // ─── AUDIT LOG ───────────────────────────────────────────
 
     function getAuditLog(productId) {
