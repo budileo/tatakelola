@@ -27,6 +27,18 @@
     document.write('<script src="' + basePath + 'js/supabase-db.js"></script>');
     document.write('<script src="' + basePath + 'js/supabase-sync.js"></script>');
 
+    // Cek cache lokal secara sinkronus agar langsung tersedia untuk mesin ERP
+    let cachedUser = null;
+    let cachedDept = null;
+    try {
+        cachedUser = localStorage.getItem('vitta_user');
+        cachedDept = localStorage.getItem('vitta_active_dept');
+        if (cachedUser && cachedDept) {
+            window.VITTA_USER = JSON.parse(cachedUser);
+            console.log("🚀 Sesi cache lokal terdeteksi secara instan:", window.VITTA_USER);
+        }
+    } catch(e) {}
+
     // Tunggu sesaat untuk inisialisasi alur SaaS Supabase di akhir pemuatan DOM
     window.addEventListener('DOMContentLoaded', function() {
         console.log("⚙️ Seluruh modul Supabase SaaS berhasil dimuat secara sinkronus.");
@@ -77,6 +89,69 @@
         `;
         document.body.appendChild(overlay);
 
+        function triggerRenderers() {
+            const renderFunctions = [
+                'renderTable', 
+                'renderTransactions', 
+                'generateReports', 
+                'loadAccounts', 
+                'loadProducts', 
+                'initPage', 
+                'loadData',
+                'refreshData'
+            ];
+            renderFunctions.forEach(fnName => {
+                if (typeof window[fnName] === 'function') {
+                    console.log(`🔄 Menyegarkan tampilan halaman via ${fnName}()...`);
+                    try {
+                        window[fnName]();
+                    } catch (e) {
+                        console.warn(`Gagal menyegarkan ${fnName}:`, e);
+                    }
+                }
+            });
+        }
+
+        // --- OPTIMASI ALUR INSTANT LOAD (SINKRONISASI LATAR BELAKANG) ---
+        if (cachedUser && cachedDept) {
+            console.log("⚡ Instant Load diaktifkan dari cache.");
+            
+            // Dispatch event instan agar UI/mesin ERP merender data lokal terlebih dahulu
+            setTimeout(() => {
+                window.dispatchEvent(new Event('vitta-saas-ready'));
+                triggerRenderers();
+            }, 0);
+
+            // Hilangkan overlay dengan sangat cepat (50ms)
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 400);
+            }, 50);
+
+            // Jalankan sesi check & cloud pull di latar belakang (non-blocking)
+            (async function() {
+                try {
+                    if (!window.getCurrentUser) return;
+                    let { user, profile, error } = await window.getCurrentUser();
+                    if (error || !user) {
+                        console.warn("Sesi Supabase tidak valid di latar belakang. Mengalihkan ke login...");
+                        window.location.href = inSubfolder ? '../login.html' : 'login.html';
+                        return;
+                    }
+                    if (window.pullCloudData) {
+                        await window.pullCloudData();
+                        console.log("☁️ Sinkronisasi latar belakang selesai.");
+                        // Segarkan UI jika ada perubahan data dari server
+                        triggerRenderers();
+                    }
+                } catch (bgErr) {
+                    console.error("Gagal sinkronisasi latar belakang:", bgErr);
+                }
+            })();
+            return;
+        }
+
+        // --- ALUR INITIAL LOAD LENGKAP (JIKA BELUM ADA CACHE) ---
         try {
             if (!window.getCurrentUser) {
                 throw new Error("Modul Supabase Auth gagal dimuat.");
@@ -175,28 +250,7 @@
                 overlay.remove();
                 // Trigger event inisialisasi kustom untuk mesin halaman jika ada
                 window.dispatchEvent(new Event('vitta-saas-ready'));
-
-                // Pemicu penyegaran otomatis halaman setelah sinkronisasi Cloud berhasil
-                const renderFunctions = [
-                    'renderTable', 
-                    'renderTransactions', 
-                    'generateReports', 
-                    'loadAccounts', 
-                    'loadProducts', 
-                    'initPage', 
-                    'loadData',
-                    'refreshData'
-                ];
-                renderFunctions.forEach(fnName => {
-                    if (typeof window[fnName] === 'function') {
-                        console.log(`🔄 Menyegarkan tampilan halaman via ${fnName}()...`);
-                        try {
-                            window[fnName]();
-                        } catch (e) {
-                            console.warn(`Gagal menyegarkan ${fnName}:`, e);
-                        }
-                    }
-                });
+                triggerRenderers();
             }, 400);
 
         } catch (err) {
