@@ -85,7 +85,7 @@
 
     function migrateGlobalDataToDept(deptId) {
         if (!deptId) return;
-        const keysToMigrate = ['vitta_contacts', 'vitta_products', 'vitta_coa'];
+        const keysToMigrate = ['vitta_contacts', 'vitta_products', 'vitta_coa', 'vitta_product_categories'];
         keysToMigrate.forEach(baseKey => {
             const globalData = localStorage.getItem(baseKey);
             const scopedKey = deptId + '_' + baseKey;
