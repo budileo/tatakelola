@@ -66,7 +66,8 @@ function initForm() {
     
     // --- Sinkronisasi data kontak dari Master Kontak ---
     let suppliersList = [];
-    const localContacts = localStorage.getItem('vitta_contacts');
+    const scopedKey = window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts';
+    const localContacts = localStorage.getItem(scopedKey);
     if(localContacts) {
         try {
             const parsed = JSON.parse(localContacts);

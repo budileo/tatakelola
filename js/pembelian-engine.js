@@ -28,26 +28,37 @@ var formatDate = formatDate || ((d) => {
 var today = today || (() => new Date().toISOString().split('T')[0]);
 var now = now || (() => new Date().toISOString());
 
+function getScopedKey(baseKey) {
+    if (window.getScopedKey) return window.getScopedKey(baseKey);
+    const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+    if (activeDept && activeDept.id) {
+        return activeDept.id + '_' + baseKey;
+    }
+    return baseKey;
+}
+
 function getNextPurNo() {
-    let c = parseInt(localStorage.getItem(PUR_KEYS.counter) || '0') + 1;
-    localStorage.setItem(PUR_KEYS.counter, c);
+    const key = getScopedKey(PUR_KEYS.counter);
+    let c = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, c);
     const d = new Date();
     return `PUR/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(c).padStart(4, '0')}`;
 }
 
 function getNextPurPayNo() {
-    let c = parseInt(localStorage.getItem(PUR_KEYS.payCounter) || '0') + 1;
-    localStorage.setItem(PUR_KEYS.payCounter, c);
+    const key = getScopedKey(PUR_KEYS.payCounter);
+    let c = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, c);
     const d = new Date();
     return `PAY-OUT/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(c).padStart(4, '0')}`;
 }
 
 function getPurchases() {
-    return JSON.parse(localStorage.getItem(PUR_KEYS.purchases)) || [];
+    return JSON.parse(localStorage.getItem(getScopedKey(PUR_KEYS.purchases))) || [];
 }
 
 function savePurchases(data) {
-    localStorage.setItem(PUR_KEYS.purchases, JSON.stringify(data));
+    localStorage.setItem(getScopedKey(PUR_KEYS.purchases), JSON.stringify(data));
 }
 
 function savePurchase(purData) {

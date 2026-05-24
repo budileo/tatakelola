@@ -29,6 +29,15 @@
     window.VITTA_USER = JSON.parse(userStr);
 
     // === FUNGSI DEPARTEMEN ===
+    
+    // Fungsi untuk mendapatkan Key khusus Departemen (Isolasi Data)
+    window.getScopedKey = function(baseKey) {
+        const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+        if (activeDept && activeDept.id) {
+            return activeDept.id + '_' + baseKey;
+        }
+        return baseKey;
+    };
 
     // Ambil semua departemen yang bisa diakses user
     window.getUserDepartments = function() {

@@ -43,7 +43,8 @@ function initForm() {
     // Load Contacts for Receiver
     const recSelect = document.getElementById('expenseReceiver');
     let contactsList = [];
-    const localContacts = localStorage.getItem('vitta_contacts');
+    const scopedKey = window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts';
+    const localContacts = localStorage.getItem(scopedKey);
     if(localContacts) {
         try {
             contactsList = JSON.parse(localContacts);

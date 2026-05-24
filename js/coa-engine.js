@@ -220,7 +220,7 @@
     function seedAccounts() {
         if (localStorage.getItem(SEED_FLAG) === 'true') return;
 
-        const existing = getAccounts();
+        const existing = loadAllAccounts();
         const existingCodes = new Set(existing.map(a => a.code));
 
         const now = new Date().toISOString();
@@ -244,20 +244,46 @@
             });
         });
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+        saveAllAccounts(existing);
         localStorage.setItem(SEED_FLAG, 'true');
     }
 
     // ─── CRUD ────────────────────────────────────────────────
 
-    function getAccounts() {
+    function loadAllAccounts() {
         try {
             return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         } catch (e) { return []; }
     }
 
-    function saveAccounts(accounts) {
+    function saveAllAccounts(accounts) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    }
+
+    function getAccounts() {
+        const all = loadAllAccounts();
+        const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+        const activeDeptId = activeDept ? activeDept.id : null;
+        
+        let changed = false;
+        const filtered = all.filter(a => {
+            if (a.is_system) return true;
+            
+            // Legacy data migration: put into active department as requested by user
+            if (!a.department_id) {
+                if (activeDeptId) {
+                    a.department_id = activeDeptId;
+                    changed = true;
+                }
+                return true;
+            }
+            return a.department_id === activeDeptId;
+        });
+
+        if (changed) {
+            saveAllAccounts(all);
+        }
+        return filtered;
     }
 
     function getAccountById(id) {
@@ -301,12 +327,15 @@
 
     /** Add a new custom account */
     function addAccount(data) {
-        const accounts = getAccounts();
+        const allAccounts = loadAllAccounts();
         // Check unique code
-        if (accounts.some(a => a.code === data.code)) {
+        if (allAccounts.some(a => a.code === data.code)) {
             return { success: false, error: 'Kode akun sudah digunakan' };
         }
         const now = new Date().toISOString();
+        const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+        const activeDeptId = activeDept ? activeDept.id : null;
+
         const account = {
             id: generateId(),
             name: data.name,
@@ -320,44 +349,59 @@
             is_deletable: true,
             is_active: true,
             balance: 0,
+            department_id: activeDeptId,
             created_at: now,
             updated_at: now,
         };
-        accounts.push(account);
-        saveAccounts(accounts);
+        allAccounts.push(account);
+        saveAllAccounts(allAccounts);
         return { success: true, account };
     }
 
     /** Update a custom account (system accounts can't be edited) */
     function updateAccount(id, data) {
-        const accounts = getAccounts();
-        const idx = accounts.findIndex(a => a.id === id);
+        const allAccounts = loadAllAccounts();
+        const idx = allAccounts.findIndex(a => a.id === id);
         if (idx === -1) return { success: false, error: 'Akun tidak ditemukan' };
-        if (accounts[idx].is_system && !accounts[idx].is_editable) {
+        
+        const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+        const activeDeptId = activeDept ? activeDept.id : null;
+        if (!allAccounts[idx].is_system && allAccounts[idx].department_id !== activeDeptId) {
+            return { success: false, error: 'Anda tidak memiliki hak untuk mengedit akun ini' };
+        }
+
+        if (allAccounts[idx].is_system && !allAccounts[idx].is_editable) {
             return { success: false, error: 'Akun sistem tidak bisa diedit' };
         }
         // Check code uniqueness (exclude self)
-        if (data.code && accounts.some(a => a.code === data.code && a.id !== id)) {
+        if (data.code && allAccounts.some(a => a.code === data.code && a.id !== id)) {
             return { success: false, error: 'Kode akun sudah digunakan' };
         }
-        Object.assign(accounts[idx], data, {
+        Object.assign(allAccounts[idx], data, {
             updated_at: new Date().toISOString(),
-            group: CATEGORY_GROUPS[data.category || accounts[idx].category] || accounts[idx].group,
+            group: CATEGORY_GROUPS[data.category || allAccounts[idx].category] || allAccounts[idx].group,
         });
-        saveAccounts(accounts);
-        return { success: true, account: accounts[idx] };
+        saveAllAccounts(allAccounts);
+        return { success: true, account: allAccounts[idx] };
     }
 
     /** Delete a custom account (system accounts can't be deleted) */
     function deleteAccount(id) {
-        const accounts = getAccounts();
-        const idx = accounts.findIndex(a => a.id === id);
+        const allAccounts = loadAllAccounts();
+        const idx = allAccounts.findIndex(a => a.id === id);
         if (idx === -1) return { success: false, error: 'Akun tidak ditemukan' };
-        if (!accounts[idx].is_deletable) {
+        
+        const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+        const activeDeptId = activeDept ? activeDept.id : null;
+        if (!allAccounts[idx].is_system && allAccounts[idx].department_id !== activeDeptId) {
+            return { success: false, error: 'Anda tidak memiliki hak untuk menghapus akun ini' };
+        }
+
+        if (!allAccounts[idx].is_deletable) {
             return { success: false, error: 'Akun ini tidak bisa dihapus' };
         }
-        accounts.splice(idx, 1);
-        saveAccounts(accounts);
+        allAccounts.splice(idx, 1);
+        saveAllAccounts(allAccounts);
         return { success: true };
     }
 

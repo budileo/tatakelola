@@ -333,14 +333,31 @@
     <script src="../js/sidebar.js"></script>
     <script>
         // --- Mock Data & Logic ---
-        let contacts = JSON.parse(localStorage.getItem('vitta_contacts')) || [
-            { id: 'C001', sapaan: 'PT', nama: 'Abadi Jaya Sejahtera', tipe: 'Customer', telepon: '08112345678', email: 'info@abadijaya.com', ar: 15000000, ap: 0, status: true },
-            { id: 'S001', sapaan: 'CV', nama: 'Bintang Terang', tipe: 'Supplier', telepon: '08567890123', email: 'sales@bintang.com', ar: 0, ap: 8500000, status: true },
-            { id: 'B001', sapaan: 'Bpk', nama: 'Candra Gunawan', tipe: 'Keduanya', telepon: '082133445566', email: 'candra@mail.com', ar: 2500000, ap: 1200000, status: true },
-            { id: 'C002', sapaan: 'PT', nama: 'Delta Teknologi', tipe: 'Customer', telepon: '08199887766', email: 'billing@delta.id', ar: 45000000, ap: 0, status: false },
-        ];
-        if(!localStorage.getItem('vitta_contacts')) {
-            localStorage.setItem('vitta_contacts', JSON.stringify(contacts));
+        const scopedKey = window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts';
+        
+        let contacts = [];
+        const scopedRaw = localStorage.getItem(scopedKey);
+        if (scopedRaw) {
+            try {
+                contacts = JSON.parse(scopedRaw);
+            } catch(e) { contacts = []; }
+        } else {
+            // Legacy data migration: put into active department as requested by user
+            const legacyRaw = localStorage.getItem('vitta_contacts');
+            if (legacyRaw) {
+                try {
+                    contacts = JSON.parse(legacyRaw);
+                    localStorage.setItem(scopedKey, JSON.stringify(contacts));
+                } catch(e) {}
+            } else {
+                contacts = [
+                    { id: 'C001', sapaan: 'PT', nama: 'Abadi Jaya Sejahtera', tipe: 'Customer', telepon: '08112345678', email: 'info@abadijaya.com', ar: 15000000, ap: 0, status: true },
+                    { id: 'S001', sapaan: 'CV', nama: 'Bintang Terang', tipe: 'Supplier', telepon: '08567890123', email: 'sales@bintang.com', ar: 0, ap: 8500000, status: true },
+                    { id: 'B001', sapaan: 'Bpk', nama: 'Candra Gunawan', tipe: 'Keduanya', telepon: '082133445566', email: 'candra@mail.com', ar: 2500000, ap: 1200000, status: true },
+                    { id: 'C002', sapaan: 'PT', nama: 'Delta Teknologi', tipe: 'Customer', telepon: '08199887766', email: 'billing@delta.id', ar: 45000000, ap: 0, status: false },
+                ];
+                localStorage.setItem(scopedKey, JSON.stringify(contacts));
+            }
         }
 
         // Format Currency
@@ -515,7 +532,7 @@
                 ap: 0,
                 status: document.getElementById('inputStatus').checked
             });
-            localStorage.setItem('vitta_contacts', JSON.stringify(contacts));
+            localStorage.setItem(scopedKey, JSON.stringify(contacts));
 
             Swal.fire({
                 icon: 'success',

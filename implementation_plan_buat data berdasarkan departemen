@@ -1,0 +1,126 @@
+# Implementation Plan - Isolasi Data per Departemen & Pembatasan COA Custom
+
+Rencana ini dibuat untuk memperbaiki bug/kekurangan sistem di mana data saat ini tidak terpisah per departemen (sehingga departemen A bisa mengakses data departemen B, dan sebaliknya). 
+
+Rencana ini juga menangani persyaratan bahwa:
+1. **Hanya COA Utama (System Accounts)** yang dapat diakses oleh semua departemen.
+2. **COA Custom** yang dibuat oleh masing-masing departemen hanya boleh diakses/diedit/dihapus oleh departemen yang bersangkutan.
+3. **Data dan Transaksi** (seperti Produk, Gudang, Stok/Inventori, Pembelian, Pengeluaran/Biaya, Jurnal, dan Kontak) harus diisolasi sepenuhnya per departemen yang sedang aktif.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> - Data lama yang ada di localStorage sebelum perubahan ini akan dianggap sebagai data "global/tanpa departemen" atau akan otomatis masuk ke departemen aktif saat ini tergantung status switch. Agar bersih, disarankan untuk menghapus data mock lama di browser setelah implementasi ini selesai agar data departemen baru ter-isolasi dengan benar dari awal.
+> - Kami akan menggunakan mekanisme `getScopedKey` yang sudah ada di modul `invoice-engine.js` (Penjualan) dan meluaskannya sebagai API global (`window.getScopedKey`) yang digunakan oleh semua engine data lain.
+
+---
+
+## Proposed Changes
+
+Kami akan memperbarui beberapa file JavaScript engine dan UI di sistem untuk menyaring dan mengisolasi penyimpanan berdasarkan departemen aktif (`activeDept.id`).
+
+```mermaid
+graph TD
+    Auth[js/auth.js] -->|Exposes global| getScopedKey[window.getScopedKey]
+    getScopedKey -->|Used in| COA[coa-engine.js]
+    getScopedKey -->|Used in| Prod[produk-engine.js]
+    getScopedKey -->|Used in| Inv[inventory-engine.js]
+    getScopedKey -->|Used in| Pur[pembelian-engine.js]
+    getScopedKey -->|Used in| Exp[biaya-engine.js]
+    getScopedKey -->|Used in| Jrn[journal-engine.js]
+    getScopedKey -->|Used in| Contacts[kontak.html, invoice-ui.js, pembelian-ui.js, biaya-ui.js]
+```
+
+### 1. Global Helpers & Authentication
+
+#### [MODIFY] [auth.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/auth.js)
+- Tambahkan helper global `window.getScopedKey(baseKey)` di dalam `js/auth.js` agar bisa diakses di semua halaman.
+```javascript
+window.getScopedKey = function(baseKey) {
+    const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+    if (activeDept && activeDept.id) {
+        return activeDept.id + '_' + baseKey;
+    }
+    return baseKey;
+};
+```
+
+---
+
+### 2. Chart of Accounts (COA) Scoping
+
+#### [MODIFY] [coa-engine.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/coa-engine.js)
+- Pisahkan pembacaan/penulisan penyimpanan internal agar tidak merusak data departemen lain (karena jika menggunakan getScopedKey langsung pada key COA, departemen B tidak akan mendapatkan COA Utama/Sistem yang di-seed di awal).
+- Gunakan `loadAllAccounts()` and `saveAllAccounts()` untuk memuat/menyimpan keseluruhan daftar akun dari `localStorage` secara utuh.
+- Modifikasi `getAccounts()` (yang merupakan fungsi filter utama) agar hanya mengembalikan akun di mana:
+  `account.is_system === true` (COA Utama) **ATAU** `account.department_id === activeDeptId` (COA custom milik departemen aktif).
+- Update `addAccount()` agar menyisipkan field `department_id: activeDeptId` ketika menyimpan akun custom baru.
+- Batasi `updateAccount()` dan `deleteAccount()` agar hanya mengizinkan pengubahan/penghapusan akun custom milik departemen aktif itu sendiri.
+
+---
+
+### 3. Products & Inventory Scoping
+
+#### [MODIFY] [produk-engine.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/produk-engine.js)
+- Gunakan helper `getScopedKey` untuk semua key penyimpanan produk, kategori, ledger stok, SKU counter, dan log audit:
+  - `STORAGE_KEY` ('vitta_products')
+  - `CATEGORIES_KEY` ('vitta_product_categories')
+  - `STOCK_LEDGER_KEY` ('vitta_stock_ledger')
+  - `AUDIT_LOG_KEY` ('vitta_product_audit_log')
+  - `SKU_COUNTER_KEY` ('vitta_sku_counter')
+- Dengan ini, produk dan stok antar departemen terisolasi total dan otomatis disesuaikan saat user bertukar departemen.
+
+#### [MODIFY] [inventory-engine.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/inventory-engine.js)
+- Gunakan `getScopedKey` untuk membatasi gudang, persediaan, dan log mutasi stok:
+  - `INV_KEYS.warehouses` ('vitta_warehouses')
+  - `INV_KEYS.inventory` ('vitta_inventory')
+  - `INV_KEYS.movements` ('vitta_stock_movements')
+
+---
+
+### 4. Transactions Scoping (Purchases, Expenses, Journals, Contacts)
+
+#### [MODIFY] [pembelian-engine.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/pembelian-engine.js)
+- Gunakan `getScopedKey` untuk key transaksi pembelian dan counternya:
+  - `PUR_KEYS.purchases` ('vitta_purchases')
+  - `PUR_KEYS.counter` ('vitta_pur_counter')
+  - `PUR_KEYS.payCounter` ('vitta_purpay_counter')
+
+#### [MODIFY] [biaya-engine.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/biaya-engine.js)
+- Gunakan `getScopedKey` untuk transaksi pengeluaran/biaya:
+  - `EXP_KEYS.expenses` ('vitta_expenses')
+  - `EXP_KEYS.counter` ('vitta_exp_counter')
+
+#### [MODIFY] [journal-engine.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/journal-engine.js)
+- Gunakan `getScopedKey` untuk log jurnal umum:
+  - `JRNL_KEY` ('vitta_journals')
+
+#### [MODIFY] [kontak.html](file:///c:/Users/user/Documents/AI%20Vitta%202026/akuntansi/kontak.html)
+- Ganti key penyimpanan `'vitta_contacts'` dengan key dinamis berskala departemen (`window.getScopedKey('vitta_contacts')`) di dalam script internal halaman kontak.
+
+#### [MODIFY] [invoice-ui.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/invoice-ui.js)
+- Ganti pemanggilan `localStorage.getItem('vitta_contacts')` dengan `localStorage.getItem(window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts')`.
+
+#### [MODIFY] [pembelian-ui.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/pembelian-ui.js)
+- Ganti pemanggilan `localStorage.getItem('vitta_contacts')` dengan `localStorage.getItem(window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts')`.
+
+#### [MODIFY] [biaya-ui.js](file:///c:/Users/user/Documents/AI%20Vitta%202026/js/biaya-ui.js)
+- Ganti pemanggilan `localStorage.getItem('vitta_contacts')` dengan `localStorage.getItem(window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts')`.
+
+---
+
+## Verification Plan
+
+### Automated Tests / Browser verification
+- Kami akan memvalidasi melalui halaman login/dashboard utama dengan beralih antar departemen (misal: beralih dari Departemen A ke Departemen B) dan memeriksa:
+  1. Daftar COA custom yang baru dibuat di Departemen A tidak muncul di Departemen B. COA Utama tetap muncul lengkap di kedua departemen.
+  2. Daftar produk, gudang, pembelian, invoice, biaya, dan jurnal yang dibuat di Departemen A tidak bocor ke Departemen B.
+  3. Mengubah transaksi atau kontak di Departemen A hanya tersimpan dan berefek di Departemen A.
+
+### Manual Verification
+- Kami menginstruksikan pengguna untuk menguji secara interaktif setelah perubahan file diterapkan:
+  - Buka Master Kontak -> Tambah kontak di Departemen A -> Switch ke Departemen B -> Kontak tsb seharusnya tidak ada di Departemen B.
+  - Buka Master COA -> Tambah COA Custom baru di Departemen A -> Switch ke Departemen B -> COA Custom tsb seharusnya tidak ada di Departemen B. COA Utama seperti "Kas", "Rekening Mandiri", dll. harus tetap ada di keduanya.
+  - Lakukan transaksi Pembelian, Penjualan, atau Biaya di Departemen A -> Transaksi tsb hanya muncul di dashboard dan laporan Departemen A.

@@ -17,19 +17,29 @@ var formatDate = formatDate || ((d) => {
 var today = today || (() => new Date().toISOString().split('T')[0]);
 var now = now || (() => new Date().toISOString());
 
+function getScopedKey(baseKey) {
+    if (window.getScopedKey) return window.getScopedKey(baseKey);
+    const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+    if (activeDept && activeDept.id) {
+        return activeDept.id + '_' + baseKey;
+    }
+    return baseKey;
+}
+
 function getNextExpNo() {
-    let c = parseInt(localStorage.getItem(EXP_KEYS.counter) || '0') + 1;
-    localStorage.setItem(EXP_KEYS.counter, c);
+    const key = getScopedKey(EXP_KEYS.counter);
+    let c = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, c);
     const d = new Date();
     return `EXP/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(c).padStart(4, '0')}`;
 }
 
 function getExpenses() {
-    return JSON.parse(localStorage.getItem(EXP_KEYS.expenses)) || [];
+    return JSON.parse(localStorage.getItem(getScopedKey(EXP_KEYS.expenses))) || [];
 }
 
 function saveExpenses(data) {
-    localStorage.setItem(EXP_KEYS.expenses, JSON.stringify(data));
+    localStorage.setItem(getScopedKey(EXP_KEYS.expenses), JSON.stringify(data));
 }
 
 function saveExpense(expData) {

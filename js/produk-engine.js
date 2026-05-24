@@ -12,6 +12,15 @@
     const AUDIT_LOG_KEY = 'vitta_product_audit_log';
     const SKU_COUNTER_KEY = 'vitta_sku_counter';
 
+    function getScopedKey(baseKey) {
+        if (window.getScopedKey) return window.getScopedKey(baseKey);
+        const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+        if (activeDept && activeDept.id) {
+            return activeDept.id + '_' + baseKey;
+        }
+        return baseKey;
+    }
+
     // ─── DEFAULT CATEGORIES (auto-seed) ──────────────────────
     const DEFAULT_CATEGORIES = [
         'Barang Dagang', 'Jasa', 'Bahan Baku', 'Barang Jadi',
@@ -27,14 +36,14 @@
                 is_active: true,
                 created_at: new Date().toISOString()
             }));
-            localStorage.setItem(CATEGORIES_KEY, JSON.stringify(cats));
+            localStorage.setItem(getScopedKey(CATEGORIES_KEY), JSON.stringify(cats));
         }
     }
 
     // ─── CATEGORIES CRUD ─────────────────────────────────────
 
     function getCategories() {
-        try { return JSON.parse(localStorage.getItem(CATEGORIES_KEY)) || []; }
+        try { return JSON.parse(localStorage.getItem(getScopedKey(CATEGORIES_KEY))) || []; }
         catch (e) { return []; }
     }
 
@@ -50,23 +59,24 @@
             created_at: new Date().toISOString()
         };
         cats.push(cat);
-        localStorage.setItem(CATEGORIES_KEY, JSON.stringify(cats));
+        localStorage.setItem(getScopedKey(CATEGORIES_KEY), JSON.stringify(cats));
         return { success: true, category: cat };
     }
 
     function deleteCategory(id) {
         let cats = getCategories();
         cats = cats.filter(c => c.id !== id);
-        localStorage.setItem(CATEGORIES_KEY, JSON.stringify(cats));
+        localStorage.setItem(getScopedKey(CATEGORIES_KEY), JSON.stringify(cats));
         return { success: true };
     }
 
     // ─── SKU GENERATOR ───────────────────────────────────────
 
     function generateSKU() {
-        let counter = parseInt(localStorage.getItem(SKU_COUNTER_KEY) || '0', 10);
+        const key = getScopedKey(SKU_COUNTER_KEY);
+        let counter = parseInt(localStorage.getItem(key) || '0', 10);
         counter++;
-        localStorage.setItem(SKU_COUNTER_KEY, String(counter));
+        localStorage.setItem(key, String(counter));
         return 'SKU/' + String(counter).padStart(5, '0');
     }
 
@@ -79,7 +89,7 @@
 
     function getProducts() {
         try { 
-            let prods = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            let prods = JSON.parse(localStorage.getItem(getScopedKey(STORAGE_KEY))) || [];
             if (window.VittaInventory) {
                 prods = prods.map(p => {
                     if (p.is_tracked) {
@@ -96,7 +106,7 @@
     }
 
     function saveProducts(products) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+        localStorage.setItem(getScopedKey(STORAGE_KEY), JSON.stringify(products));
     }
 
     function getProductById(id) {
@@ -328,7 +338,7 @@
             return movs;
         }
         try {
-            const all = JSON.parse(localStorage.getItem(STOCK_LEDGER_KEY)) || [];
+            const all = JSON.parse(localStorage.getItem(getScopedKey(STOCK_LEDGER_KEY))) || [];
             if (productId) return all.filter(s => s.product_id === productId);
             return all;
         } catch (e) { return []; }
@@ -349,7 +359,7 @@
             created_by: entry.created_by || 'system',
             created_at: new Date().toISOString()
         });
-        localStorage.setItem(STOCK_LEDGER_KEY, JSON.stringify(all));
+        localStorage.setItem(getScopedKey(STOCK_LEDGER_KEY), JSON.stringify(all));
     }
 
     /** Process stock movement (called from sales/purchase modules) */
@@ -400,7 +410,7 @@
 
     function getAuditLog(productId) {
         try {
-            const all = JSON.parse(localStorage.getItem(AUDIT_LOG_KEY)) || [];
+            const all = JSON.parse(localStorage.getItem(getScopedKey(AUDIT_LOG_KEY))) || [];
             if (productId) return all.filter(l => l.product_id === productId);
             return all;
         } catch (e) { return []; }
@@ -418,7 +428,7 @@
             changed_by: changedBy || 'system',
             changed_at: new Date().toISOString()
         });
-        localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(all));
+        localStorage.setItem(getScopedKey(AUDIT_LOG_KEY), JSON.stringify(all));
     }
 
     // ─── HELPERS ─────────────────────────────────────────────

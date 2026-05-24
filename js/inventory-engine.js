@@ -9,9 +9,22 @@ const INV_KEYS = {
     movements: 'vitta_stock_movements'
 };
 
+function getScopedKey(baseKey) {
+    if (window.getScopedKey) return window.getScopedKey(baseKey);
+    const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+    if (activeDept && activeDept.id) {
+        return activeDept.id + '_' + baseKey;
+    }
+    return baseKey;
+}
+
 // Seed default warehouse if none exists
 function initInventoryEngine() {
-    let wh = JSON.parse(localStorage.getItem(INV_KEYS.warehouses));
+    const whKey = getScopedKey(INV_KEYS.warehouses);
+    const invKey = getScopedKey(INV_KEYS.inventory);
+    const movKey = getScopedKey(INV_KEYS.movements);
+    
+    let wh = JSON.parse(localStorage.getItem(whKey));
     if (!wh || wh.length === 0) {
         wh = [{
             id: 'WH-MAIN',
@@ -20,30 +33,30 @@ function initInventoryEngine() {
             image: '',
             created_at: new Date().toISOString()
         }];
-        localStorage.setItem(INV_KEYS.warehouses, JSON.stringify(wh));
+        localStorage.setItem(whKey, JSON.stringify(wh));
     }
     
-    if (!localStorage.getItem(INV_KEYS.inventory)) {
-        localStorage.setItem(INV_KEYS.inventory, JSON.stringify([]));
+    if (!localStorage.getItem(invKey)) {
+        localStorage.setItem(invKey, JSON.stringify([]));
     }
     
-    if (!localStorage.getItem(INV_KEYS.movements)) {
-        localStorage.setItem(INV_KEYS.movements, JSON.stringify([]));
+    if (!localStorage.getItem(movKey)) {
+        localStorage.setItem(movKey, JSON.stringify([]));
     }
 }
 
 // === WAREHOUSE CRUD ===
 function getWarehouses() {
-    return JSON.parse(localStorage.getItem(INV_KEYS.warehouses)) || [];
+    return JSON.parse(localStorage.getItem(getScopedKey(INV_KEYS.warehouses))) || [];
 }
 
 // === INVENTORY CORE ===
 function getInventory() {
-    return JSON.parse(localStorage.getItem(INV_KEYS.inventory)) || [];
+    return JSON.parse(localStorage.getItem(getScopedKey(INV_KEYS.inventory))) || [];
 }
 
 function getStockMovements() {
-    return JSON.parse(localStorage.getItem(INV_KEYS.movements)) || [];
+    return JSON.parse(localStorage.getItem(getScopedKey(INV_KEYS.movements))) || [];
 }
 
 function getProductStock(productId, warehouseId = null) {
@@ -118,7 +131,7 @@ function recordStockMovement(data) {
         // HPP tetap sama
     }
     
-    localStorage.setItem(INV_KEYS.inventory, JSON.stringify(inv));
+    localStorage.setItem(getScopedKey(INV_KEYS.inventory), JSON.stringify(inv));
     
     // Save movement history
     const movs = getStockMovements();
@@ -138,7 +151,7 @@ function recordStockMovement(data) {
         created_at: data.date || new Date().toISOString()
     };
     movs.unshift(movement);
-    localStorage.setItem(INV_KEYS.movements, JSON.stringify(movs));
+    localStorage.setItem(getScopedKey(INV_KEYS.movements), JSON.stringify(movs));
     
     return movement;
 }

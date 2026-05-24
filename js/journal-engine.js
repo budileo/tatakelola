@@ -4,13 +4,27 @@
 
 const JRNL_KEY = 'vitta_journals';
 
-// Ensure JRNL_KEY array exists
-if (!localStorage.getItem(JRNL_KEY)) {
-    localStorage.setItem(JRNL_KEY, JSON.stringify([]));
+function getScopedKey(baseKey) {
+    if (window.getScopedKey) return window.getScopedKey(baseKey);
+    const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+    if (activeDept && activeDept.id) {
+        return activeDept.id + '_' + baseKey;
+    }
+    return baseKey;
 }
 
+// Ensure JRNL_KEY array exists
+function initJournalStore() {
+    const key = getScopedKey(JRNL_KEY);
+    if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify([]));
+    }
+}
+initJournalStore();
+
 function getJournals() {
-    return JSON.parse(localStorage.getItem(JRNL_KEY)) || [];
+    initJournalStore();
+    return JSON.parse(localStorage.getItem(getScopedKey(JRNL_KEY))) || [];
 }
 
 /**
@@ -52,7 +66,7 @@ function recordJournal(data) {
     };
 
     journals.push(entry);
-    localStorage.setItem(JRNL_KEY, JSON.stringify(journals));
+    localStorage.setItem(getScopedKey(JRNL_KEY), JSON.stringify(journals));
     return newId;
 }
 
@@ -95,7 +109,7 @@ function voidJournal(journalId, reason) {
     // Mark original as void
     journals[idx].status = 'void';
     
-    localStorage.setItem(JRNL_KEY, JSON.stringify(journals));
+    localStorage.setItem(getScopedKey(JRNL_KEY), JSON.stringify(journals));
     return reversalEntry.id;
 }
 
