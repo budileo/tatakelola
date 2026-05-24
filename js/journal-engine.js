@@ -4,7 +4,7 @@
 
 const JRNL_KEY = 'vitta_journals';
 
-function getScopedKey(baseKey) {
+function localGetScopedKey(baseKey) {
     if (window.getScopedKey) return window.getScopedKey(baseKey);
     const activeDept = window.getActiveDept ? window.getActiveDept() : null;
     if (activeDept && activeDept.id) {
@@ -15,7 +15,7 @@ function getScopedKey(baseKey) {
 
 // Ensure JRNL_KEY array exists
 function initJournalStore() {
-    const key = getScopedKey(JRNL_KEY);
+    const key = localGetScopedKey(JRNL_KEY);
     if (!localStorage.getItem(key)) {
         localStorage.setItem(key, JSON.stringify([]));
     }
@@ -24,7 +24,7 @@ initJournalStore();
 
 function getJournals() {
     initJournalStore();
-    return JSON.parse(localStorage.getItem(getScopedKey(JRNL_KEY))) || [];
+    return JSON.parse(localStorage.getItem(localGetScopedKey(JRNL_KEY))) || [];
 }
 
 /**
@@ -66,7 +66,7 @@ function recordJournal(data) {
     };
 
     journals.push(entry);
-    localStorage.setItem(getScopedKey(JRNL_KEY), JSON.stringify(journals));
+    localStorage.setItem(localGetScopedKey(JRNL_KEY), JSON.stringify(journals));
     return newId;
 }
 
@@ -109,7 +109,7 @@ function voidJournal(journalId, reason) {
     // Mark original as void
     journals[idx].status = 'void';
     
-    localStorage.setItem(getScopedKey(JRNL_KEY), JSON.stringify(journals));
+    localStorage.setItem(localGetScopedKey(JRNL_KEY), JSON.stringify(journals));
     return reversalEntry.id;
 }
 

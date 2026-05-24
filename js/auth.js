@@ -80,7 +80,32 @@
         user.department_id = dept.id;
         localStorage.setItem('vitta_user', JSON.stringify(user));
         window.VITTA_USER = user;
+        migrateGlobalDataToDept(dept.id);
     };
+
+    function migrateGlobalDataToDept(deptId) {
+        if (!deptId) return;
+        const keysToMigrate = ['vitta_contacts', 'vitta_products', 'vitta_coa'];
+        keysToMigrate.forEach(baseKey => {
+            const globalData = localStorage.getItem(baseKey);
+            const scopedKey = deptId + '_' + baseKey;
+            const scopedData = localStorage.getItem(scopedKey);
+            
+            // Jika data global ada dan data scoped belum ada (kosong)
+            if (globalData && (!scopedData || scopedData === '[]' || scopedData === '{}')) {
+                try {
+                    localStorage.setItem(scopedKey, globalData);
+                    console.log(`Migrated ${baseKey} to ${scopedKey}`);
+                } catch(e) {}
+            }
+        });
+    }
+
+    // Auto-migrate on script load if active dept exists
+    const currentActiveDept = window.getActiveDept();
+    if (currentActiveDept && currentActiveDept.id) {
+        migrateGlobalDataToDept(currentActiveDept.id);
+    }
 
     // Kompatibilitas: getVittaDept sekarang mengarah ke dept aktif
     window.getVittaDept = function() {

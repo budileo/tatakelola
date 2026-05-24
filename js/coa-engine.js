@@ -249,6 +249,12 @@
     }
 
     // ─── CRUD ────────────────────────────────────────────────
+    
+    function hasTransactions(accountCode) {
+        if (!window.getJournals) return false;
+        const journals = window.getJournals();
+        return journals.some(j => j.lines && j.lines.some(l => l.account === accountCode));
+    }
 
     function loadAllAccounts() {
         try {
@@ -377,6 +383,12 @@
         if (data.code && allAccounts.some(a => a.code === data.code && a.id !== id)) {
             return { success: false, error: 'Kode akun sudah digunakan' };
         }
+
+        // Check if modifying code but account has transactions
+        if (data.code && data.code !== allAccounts[idx].code && hasTransactions(allAccounts[idx].code)) {
+            return { success: false, error: 'Kode akun tidak bisa diubah karena sudah memiliki transaksi. Hanya nama yang bisa diubah.' };
+        }
+
         Object.assign(allAccounts[idx], data, {
             updated_at: new Date().toISOString(),
             group: CATEGORY_GROUPS[data.category || allAccounts[idx].category] || allAccounts[idx].group,
@@ -400,6 +412,11 @@
         if (!allAccounts[idx].is_deletable) {
             return { success: false, error: 'Akun ini tidak bisa dihapus' };
         }
+
+        if (hasTransactions(allAccounts[idx].code)) {
+            return { success: false, error: 'Akun tidak bisa dihapus karena sudah memiliki transaksi' };
+        }
+
         allAccounts.splice(idx, 1);
         saveAllAccounts(allAccounts);
         return { success: true };
@@ -441,6 +458,7 @@
         addAccount,
         updateAccount,
         deleteAccount,
+        hasTransactions,
         getCategories,
         getGroups,
         CATEGORY_GROUPS,

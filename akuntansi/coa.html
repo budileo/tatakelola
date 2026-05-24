@@ -18,6 +18,7 @@
         }
     </script>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex">
     
@@ -36,7 +37,7 @@
                 </div>
             </div>
             <div>
-                <button class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/20 flex items-center">
+                <button onclick="openModalAdd()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/20 flex items-center">
                     <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Buat Akun Baru
                 </button>
@@ -94,6 +95,42 @@
         </main>
     </div>
 
+    <!-- Modal Form COA -->
+    <div id="coaModal" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center p-5 border-b border-dark-700 bg-dark-800/50 rounded-t-2xl">
+                <h3 id="modalTitle" class="text-lg font-bold text-white">Buat Akun Baru</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="coaForm" onsubmit="handleSave(event)">
+                <input type="hidden" id="coaId">
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block mb-1 text-sm font-medium text-gray-300">Nama Akun <span class="text-rose-500">*</span></label>
+                        <input type="text" id="coaName" required class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-sm font-medium text-gray-300">Kode Akun <span class="text-rose-500">*</span></label>
+                        <input type="text" id="coaCode" required class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <p id="coaCodeHelp" class="text-xs text-rose-400 mt-1 hidden">Kode tidak bisa diubah karena sudah memiliki transaksi.</p>
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-sm font-medium text-gray-300">Kategori <span class="text-rose-500">*</span></label>
+                        <select id="coaCategory" required class="bg-dark-700 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            <!-- Diisi JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="p-5 border-t border-dark-700 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm text-gray-300 bg-dark-700 border border-dark-600 rounded-lg hover:bg-dark-600">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-500">Simpan Akun</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="../js/auth.js"></script>
     <script src="../js/sidebar.js"></script>
     <script src="../js/coa-engine.js"></script>
@@ -113,11 +150,11 @@
                 let filteredAccounts = accounts;
                 if (activeGroupFilter !== 'all') {
                     filteredAccounts = accounts.filter(a => {
-                        if (activeGroupFilter === '1') return a.code.startsWith('1-');
-                        if (activeGroupFilter === '2') return a.code.startsWith('2-');
-                        if (activeGroupFilter === '3') return a.code.startsWith('3-');
-                        if (activeGroupFilter === '4') return a.code.startsWith('4-') || a.code.startsWith('7-');
-                        if (activeGroupFilter === '5') return a.code.startsWith('5-') || a.code.startsWith('6-') || a.code.startsWith('8-') || a.code.startsWith('9-');
+                        if (activeGroupFilter === '1') return a.group === '1 - Aset';
+                        if (activeGroupFilter === '2') return a.group === '2 - Kewajiban';
+                        if (activeGroupFilter === '3') return a.group === '3 - Ekuitas';
+                        if (activeGroupFilter === '4') return a.group === '4 - Pendapatan' || a.group === '7 - Pendapatan Lainnya';
+                        if (activeGroupFilter === '5') return a.group === '5 - Harga Pokok Penjualan' || a.group === '6 - Beban Operasional' || a.group === '8 - Beban Lainnya' || a.group === '9 - Pajak Penghasilan';
                         return true;
                     });
                 }
@@ -160,11 +197,12 @@
                         const statusBadge = a.is_active 
                             ? `<span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs">Aktif</span>`
                             : `<span class="bg-gray-500/10 text-gray-400 px-2 py-1 rounded text-xs">Nonaktif</span>`;
+                        const hasTx = window.VittaCOA.hasTransactions ? window.VittaCOA.hasTransactions(a.code) : false;
                         const actionButtons = a.is_system 
-                            ? `<button class="text-blue-400 hover:text-blue-300 text-xs">Lihat</button>`
+                            ? `<button class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1">Sistem</button>`
                             : `
-                                <button class="text-blue-400 hover:text-blue-300 text-xs mr-2">Edit</button>
-                                <button class="text-rose-400 hover:text-rose-300 text-xs">Hapus</button>
+                                <button onclick="openModalEdit('${a.id}')" class="text-blue-400 hover:text-blue-300 text-xs mr-2">Edit</button>
+                                ${hasTx ? '<span class="text-gray-500 text-xs cursor-not-allowed" title="Sudah ada transaksi">Hapus</span>' : `<button onclick="handleDelete('${a.id}')" class="text-rose-400 hover:text-rose-300 text-xs">Hapus</button>`}
                             `;
 
                         html += `
@@ -185,7 +223,105 @@
                 tbody.innerHTML = html;
             }
 
+            // Populate category select
+            function populateCategories() {
+                const select = document.getElementById('coaCategory');
+                const categories = window.VittaCOA.getCategories();
+                select.innerHTML = '<option value="">-- Pilih Kategori --</option>' + categories.map(c => \`<option value="\${c}">\${c}</option>\`).join('');
+            }
+            populateCategories();
+
             renderCOA();
+
+            window.openModalAdd = function() {
+                document.getElementById('coaForm').reset();
+                document.getElementById('coaId').value = '';
+                document.getElementById('modalTitle').innerText = 'Buat Akun Baru';
+                document.getElementById('coaCode').readOnly = false;
+                document.getElementById('coaCategory').disabled = false;
+                document.getElementById('coaCodeHelp').classList.add('hidden');
+                document.getElementById('coaModal').classList.remove('hidden');
+            };
+
+            window.openModalEdit = function(id) {
+                const acc = window.VittaCOA.getAccountById(id);
+                if (!acc) return;
+                
+                document.getElementById('coaForm').reset();
+                document.getElementById('coaId').value = acc.id;
+                document.getElementById('modalTitle').innerText = 'Edit Akun';
+                document.getElementById('coaName').value = acc.name;
+                document.getElementById('coaCode').value = acc.code;
+                document.getElementById('coaCategory').value = acc.category;
+                
+                const hasTx = window.VittaCOA.hasTransactions ? window.VittaCOA.hasTransactions(acc.code) : false;
+                if (hasTx) {
+                    document.getElementById('coaCode').readOnly = true;
+                    document.getElementById('coaCodeHelp').classList.remove('hidden');
+                } else {
+                    document.getElementById('coaCode').readOnly = false;
+                    document.getElementById('coaCodeHelp').classList.add('hidden');
+                }
+                
+                document.getElementById('coaModal').classList.remove('hidden');
+            };
+
+            window.closeModal = function() {
+                document.getElementById('coaModal').classList.add('hidden');
+            };
+
+            window.handleSave = function(e) {
+                e.preventDefault();
+                const id = document.getElementById('coaId').value;
+                const data = {
+                    name: document.getElementById('coaName').value,
+                    code: document.getElementById('coaCode').value,
+                    category: document.getElementById('coaCategory').value
+                };
+
+                let res;
+                if (id) {
+                    res = window.VittaCOA.updateAccount(id, data);
+                } else {
+                    res = window.VittaCOA.addAccount(data);
+                }
+
+                if (res.success) {
+                    Swal.fire({icon: 'success', title: 'Berhasil', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
+                    closeModal();
+                    renderCOA(searchInput ? searchInput.value : '');
+                } else {
+                    Swal.fire({icon: 'error', title: 'Gagal', text: res.error, background: '#1f2937', color: '#fff'});
+                }
+            };
+
+            window.handleDelete = function(id) {
+                const acc = window.VittaCOA.getAccountById(id);
+                if (!acc) return;
+                
+                Swal.fire({
+                    title: 'Hapus Akun?',
+                    text: \`Yakin ingin menghapus akun \${acc.name}?\`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#4b5563',
+                    confirmButtonText: 'Ya, Hapus',
+                    cancelButtonText: 'Batal',
+                    background: '#1f2937',
+                    color: '#fff'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const res = window.VittaCOA.deleteAccount(id);
+                        if (res.success) {
+                            Swal.fire({icon: 'success', title: 'Terhapus', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
+                            renderCOA(searchInput ? searchInput.value : '');
+                        } else {
+                            Swal.fire({icon: 'error', title: 'Gagal', text: res.error, background: '#1f2937', color: '#fff'});
+                        }
+                    }
+                });
+            };
 
             // Search listener
             if (searchInput) {

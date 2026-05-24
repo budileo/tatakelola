@@ -423,90 +423,95 @@
     // ─── SAVE PRODUCT ───────────────────────────────────────
 
     window.saveProduct = function () {
-        const errBox = document.getElementById('formErrors');
-        errBox.classList.add('hidden');
-        errBox.innerHTML = '';
+        try {
+            const errBox = document.getElementById('formErrors');
+            errBox.classList.add('hidden');
+            errBox.innerHTML = '';
 
-        // Gather wholesale prices
-        const wholesaleRows = document.querySelectorAll('.wholesale-row');
-        const wholesalePrices = [];
-        wholesaleRows.forEach(row => {
-            const qty = row.querySelector('.ws-qty')?.value;
-            const price = row.querySelector('.ws-price')?.value;
-            const label = row.querySelector('.ws-label')?.value || '';
-            if (qty || price) {
-                wholesalePrices.push({
-                    min_qty: parseFloat(qty) || 0,
-                    price: parseFloat(price) || 0,
-                    label: label.trim()
-                });
+            // Gather wholesale prices
+            const wholesaleRows = document.querySelectorAll('.wholesale-row');
+            const wholesalePrices = [];
+            wholesaleRows.forEach(row => {
+                const qty = row.querySelector('.ws-qty')?.value;
+                const price = row.querySelector('.ws-price')?.value;
+                const label = row.querySelector('.ws-label')?.value || '';
+                if (qty || price) {
+                    wholesalePrices.push({
+                        min_qty: parseFloat(qty) || 0,
+                        price: parseFloat(price) || 0,
+                        label: label.trim()
+                    });
+                }
+            });
+
+            // Get category name
+            const catSel = document.getElementById('fCategory');
+            const catName = catSel.selectedOptions[0]?.text || '';
+
+            const data = {
+                name: document.getElementById('fName').value,
+                category_id: catSel.value,
+                category_name: catSel.value ? catName : '',
+                unit: document.getElementById('fUnit').value,
+                description: document.getElementById('fDescription').value,
+                image_data: document.getElementById('fImageData').value,
+
+                is_purchased: document.getElementById('toggleBuy').checked,
+                is_sold: document.getElementById('toggleSell').checked,
+                is_tracked: document.getElementById('toggleTrack').checked,
+
+                buy_price: document.getElementById('fBuyPrice').value,
+                sell_price: document.getElementById('fSellPrice').value,
+
+                revenue_account_code: document.getElementById('fRevenueAccount').value,
+                cogs_account_code: document.getElementById('fCOGSAccount').value,
+                inventory_account_code: document.getElementById('fInventoryAccount').value,
+
+                default_sell_tax: document.getElementById('fSellTax').value,
+                default_buy_tax: document.getElementById('fBuyTax').value,
+
+                initial_stock: document.getElementById('fInitialStock').value,
+                min_stock: document.getElementById('fMinStock').value,
+                stock_method: document.getElementById('fStockMethod').value,
+
+                wholesale_prices: wholesalePrices,
+            };
+
+                let result;
+            if (currentEditId) {
+                data.sku = document.getElementById('fSKU').value;
+                result = P.updateProduct(currentEditId, data);
+            } else {
+                // Pass custom SKU jika user mengubahnya
+                const skuVal = document.getElementById('fSKU').value.trim();
+                if (skuVal) data.custom_sku = skuVal;
+                result = P.createProduct(data);
             }
-        });
 
-        // Get category name
-        const catSel = document.getElementById('fCategory');
-        const catName = catSel.selectedOptions[0]?.text || '';
-
-        const data = {
-            name: document.getElementById('fName').value,
-            category_id: catSel.value,
-            category_name: catSel.value ? catName : '',
-            unit: document.getElementById('fUnit').value,
-            description: document.getElementById('fDescription').value,
-            image_data: document.getElementById('fImageData').value,
-
-            is_purchased: document.getElementById('toggleBuy').checked,
-            is_sold: document.getElementById('toggleSell').checked,
-            is_tracked: document.getElementById('toggleTrack').checked,
-
-            buy_price: document.getElementById('fBuyPrice').value,
-            sell_price: document.getElementById('fSellPrice').value,
-
-            revenue_account_code: document.getElementById('fRevenueAccount').value,
-            cogs_account_code: document.getElementById('fCOGSAccount').value,
-            inventory_account_code: document.getElementById('fInventoryAccount').value,
-
-            default_sell_tax: document.getElementById('fSellTax').value,
-            default_buy_tax: document.getElementById('fBuyTax').value,
-
-            initial_stock: document.getElementById('fInitialStock').value,
-            min_stock: document.getElementById('fMinStock').value,
-            stock_method: document.getElementById('fStockMethod').value,
-
-            wholesale_prices: wholesalePrices,
-        };
-
-        let result;
-        if (currentEditId) {
-            data.sku = document.getElementById('fSKU').value;
-            result = P.updateProduct(currentEditId, data);
-        } else {
-            // Pass custom SKU jika user mengubahnya
-            const skuVal = document.getElementById('fSKU').value.trim();
-            if (skuVal) data.custom_sku = skuVal;
-            result = P.createProduct(data);
-        }
-
-        if (!result.success) {
-            errBox.classList.remove('hidden');
-            errBox.innerHTML = `
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-rose-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <div>
-                        <p class="font-semibold text-rose-400 text-sm">Gagal menyimpan:</p>
-                        <ul class="list-disc list-inside mt-1 text-rose-300 text-xs space-y-0.5">
-                            ${result.errors.map(e => `<li>${escHtml(e)}</li>`).join('')}
-                        </ul>
+            if (!result.success) {
+                errBox.classList.remove('hidden');
+                errBox.innerHTML = `
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-rose-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div>
+                            <p class="font-semibold text-rose-400 text-sm">Gagal menyimpan:</p>
+                            <ul class="list-disc list-inside mt-1 text-rose-300 text-xs space-y-0.5">
+                                ${result.errors.map(e => `<li>${escHtml(e)}</li>`).join('')}
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            `;
-            errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
-        }
+                `;
+                errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
 
-        showToast(currentEditId ? 'Produk berhasil diperbarui' : 'Produk baru berhasil disimpan', 'success');
-        currentEditId = null;
-        showView('list');
+            showToast(currentEditId ? 'Produk berhasil diperbarui' : 'Produk baru berhasil disimpan', 'success');
+            currentEditId = null;
+            showView('list');
+        } catch (error) {
+            console.error("Error saving product:", error);
+            alert("Terjadi kesalahan sistem saat menyimpan produk: " + error.message);
+        }
     };
 
     // ─── DELETE PRODUCT ─────────────────────────────────────

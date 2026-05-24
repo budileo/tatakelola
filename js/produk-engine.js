@@ -73,11 +73,20 @@
     // ─── SKU GENERATOR ───────────────────────────────────────
 
     function generateSKU() {
-        const key = getScopedKey(SKU_COUNTER_KEY);
-        let counter = parseInt(localStorage.getItem(key) || '0', 10);
-        counter++;
-        localStorage.setItem(key, String(counter));
-        return 'SKU/' + String(counter).padStart(5, '0');
+        const prods = getProducts();
+        if (prods.length === 0) return 'PRD001';
+        
+        // Find highest numeric suffix
+        let maxId = 0;
+        prods.forEach(p => {
+            if (!p.sku) return;
+            const match = p.sku.match(/PRD(\d+)/i);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxId) maxId = num;
+            }
+        });
+        return 'PRD' + String(maxId + 1).padStart(3, '0');
     }
 
     function isSKUUnique(sku, excludeId) {
@@ -254,27 +263,11 @@
         // Audit log
         addAuditLog(product.id, 'CREATE', null, null, null, product.created_by);
 
-        // Initial stock ledger entry
+        // Jika tracked, catat stok awal ke ledger
         if (product.is_tracked && product.initial_stock > 0) {
+            // Kita butuh fungsi dari inventory-engine (jika ada) untuk mencatat pergerakan stok awal
             if (window.VittaInventory) {
                 const warehouses = window.VittaInventory.getWarehouses();
-                const whId = warehouses.length > 0 ? warehouses[0].id : 'WH-MAIN';
-                try {
-                    window.VittaInventory.recordStockMovement({
-                        product_id: product.id,
-                        warehouse_id: whId,
-                        tipe: 'in',
-                        type_original: 'INITIAL',
-                        qty: product.initial_stock,
-                        hpp: product.buy_price,
-                        reference_id: 'INITIAL',
-                        memo: 'Stok awal saat pembuatan produk',
-                        created_by: product.created_by
-                    });
-                } catch (e) {
-                    console.error("Gagal merekam stok awal di VittaInventory:", e);
-                }
-            } else {
                 addStockLedger({
                     product_id: product.id,
                     type: 'INITIAL',
@@ -525,6 +518,9 @@
         getStockLedger,
         processStockMovement,
         getLowStockProducts,
+
+        // Update Stock
+        updateStock,
 
         // Audit
         getAuditLog,

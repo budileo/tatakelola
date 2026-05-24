@@ -177,19 +177,25 @@ function getAccountName(code) {
 }
 
 function getNextKasBankCode() {
-    if (!window.VittaCOA) return '1-10004';
+    if (!window.VittaCOA) return '1104';
     const accounts = window.VittaCOA.getAccounts().filter(a => a.category === 'Kas & Bank');
-    let maxNum = 10003;
+    let maxNum = 1103; // Default starting for new Kas & Bank if standard is 1101, 1102, 1103
     accounts.forEach(a => {
-        const parts = a.code.split('-');
-        if (parts.length === 2 && parts[0] === '1') {
-            const num = parseInt(parts[1], 10);
-            if (!isNaN(num) && num > maxNum) {
+        // Handle standard 4-digit codes like 1101, 1102
+        if (/^\d{4}$/.test(a.code)) {
+            const num = parseInt(a.code, 10);
+            if (!isNaN(num) && num > maxNum && num < 1199) {
                 maxNum = num;
             }
         }
+        // Handle old legacy codes like 1-10001
+        const parts = a.code.split('-');
+        if (parts.length === 2 && parts[0] === '1') {
+            const num = parseInt(parts[1], 10);
+            // We ignore legacy maxNum for standard generation unless needed
+        }
     });
-    return '1-' + (maxNum + 1);
+    return String(maxNum + 1);
 }
 window.getNextKasBankCode = getNextKasBankCode;
 

@@ -10,7 +10,6 @@ const INV_KEYS = {
 };
 
 function getScopedKey(baseKey) {
-    if (window.getScopedKey) return window.getScopedKey(baseKey);
     const activeDept = window.getActiveDept ? window.getActiveDept() : null;
     if (activeDept && activeDept.id) {
         return activeDept.id + '_' + baseKey;

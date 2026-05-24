@@ -29,7 +29,6 @@ var today = today || (() => new Date().toISOString().split('T')[0]);
 var now = now || (() => new Date().toISOString());
 
 function getScopedKey(baseKey) {
-    if (window.getScopedKey) return window.getScopedKey(baseKey);
     const activeDept = window.getActiveDept ? window.getActiveDept() : null;
     if (activeDept && activeDept.id) {
         return activeDept.id + '_' + baseKey;
