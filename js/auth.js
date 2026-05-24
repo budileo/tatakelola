@@ -106,11 +106,72 @@
             }
 
             // 1. Cek sesi aktif langsung dari server Supabase
-            const { user, profile, error } = await window.getCurrentUser();
+            let { user, profile, error } = await window.getCurrentUser();
             if (error || !user) {
                 console.warn("Sesi Supabase tidak valid. Mengalihkan ke login...");
                 window.location.href = inSubfolder ? '../login.html' : 'login.html';
                 return;
+            }
+
+            // 2. SUPREME SELF-HEALING: Jika profil tidak ditemukan pada inisialisasi
+            if (!profile) {
+                console.log("👤 Profil tidak ditemukan pada inisialisasi. Membuat profil baru...");
+                const { data: newProfile } = await window.supabaseClient
+                    .from('akt_user_profiles')
+                    .insert([{
+                        id: user.id,
+                        user_id: user.id,
+                        email: user.email,
+                        full_name: (user.user_metadata && user.user_metadata.full_name) || 'User Pemilik',
+                        role: 'OWNER',
+                        status: 'ACTIVE'
+                    }])
+                    .select()
+                    .single();
+                if (newProfile) {
+                    profile = newProfile;
+                }
+            }
+
+            // 3. SUPREME SELF-HEALING: Pastikan departemen ada di database online
+            let activeDept = profile ? profile.akt_departments : null;
+            const { data: existingDepts } = await window.supabaseClient
+                .from('akt_departments')
+                .select('*')
+                .eq('user_id', user.id);
+
+            if (existingDepts && existingDepts.length > 0) {
+                activeDept = existingDepts[0];
+            } else {
+                console.log("🏢 Departemen tidak terdeteksi. Membuat departemen 'Tata Kelola'...");
+                const { data: newDept } = await window.supabaseClient
+                    .from('akt_departments')
+                    .insert([{
+                        name: 'Tata Kelola',
+                        email: user.email,
+                        user_id: user.id
+                    }])
+                    .select()
+                    .single();
+                if (newDept) {
+                    activeDept = newDept;
+                }
+            }
+
+            // 4. SUPREME SELF-HEALING: Hubungkan profil ke departemen
+            if (profile && activeDept && (!profile.department_id || profile.department_id !== activeDept.id)) {
+                console.log("🔗 Menautkan profil pengguna ke departemen di inisialisasi...");
+                await window.supabaseClient
+                    .from('akt_user_profiles')
+                    .update({ department_id: activeDept.id })
+                    .eq('id', user.id);
+                profile.department_id = activeDept.id;
+                profile.akt_departments = activeDept;
+            }
+
+            // Simpan ke local storage demi kompatibilitas sinkronus
+            if (activeDept) {
+                localStorage.setItem('vitta_active_dept', JSON.stringify(activeDept));
             }
 
             // Ekspos data user secara global
@@ -120,9 +181,11 @@
                 full_name: profile ? profile.full_name : 'User Pemilik',
                 role: profile ? profile.role : 'OWNER',
                 status: profile ? profile.status : 'ACTIVE',
-                department_id: profile && profile.akt_departments ? profile.akt_departments.id : null,
-                department_name: profile && profile.akt_departments ? profile.akt_departments.name : 'Tata Kelola'
+                department_id: activeDept ? activeDept.id : null,
+                department_name: activeDept ? activeDept.name : 'Tata Kelola'
             };
+
+            localStorage.setItem('vitta_user', JSON.stringify(window.VITTA_USER));
 
             // 2. Lakukan sinkronisasi data cloud ke cache lokal secara instan
             if (window.pullCloudData) {

@@ -102,68 +102,81 @@ async function signInUser(email, password) {
         const user = data.user;
         const session = data.session;
 
-        // Ambil profil lengkap setelah berhasil login
+        // 1. Ambil profil lengkap setelah berhasil login
         let { data: profile } = await window.supabaseClient
             .from('akt_user_profiles')
             .select('*, akt_departments(*)')
             .eq('id', user.id)
             .single();
 
-        // SELF-HEALING: Jika profil ada tetapi belum memiliki departemen terkait di database online
-        let activeDept = profile ? profile.akt_departments : null;
-        if (profile && !activeDept) {
-            console.log("🏢 Departemen tidak terdeteksi untuk user ini. Mencari/membuat departemen 'Tata Kelola'...");
-            
-            // Periksa apakah departemen 'Tata Kelola' sudah pernah dibuat di database online
-            const { data: existingDepts } = await window.supabaseClient
-                .from('akt_departments')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('name', 'Tata Kelola');
+        // 2. SUPREME SELF-HEALING: Jika profil tidak ditemukan di database online
+        if (!profile) {
+            console.log("👤 Profil tidak ditemukan. Membuat profil baru di akt_user_profiles...");
+            const { data: newProfile, error: profileCreateErr } = await window.supabaseClient
+                .from('akt_user_profiles')
+                .insert([{
+                    id: user.id,
+                    user_id: user.id,
+                    email: user.email,
+                    full_name: (user.user_metadata && user.user_metadata.full_name) || 'User Pemilik',
+                    role: 'OWNER',
+                    status: 'ACTIVE'
+                }])
+                .select()
+                .single();
 
-            if (existingDepts && existingDepts.length > 0) {
-                activeDept = existingDepts[0];
-                console.log("🏢 Menemukan departemen 'Tata Kelola' yang sudah ada:", activeDept.id);
+            if (profileCreateErr) {
+                console.error("❌ Gagal membuat profil baru:", profileCreateErr.message);
             } else {
-                // Buat departemen baru di database online
-                const { data: newDept, error: deptErr } = await window.supabaseClient
-                    .from('akt_departments')
-                    .insert([{
-                        name: 'Tata Kelola',
-                        email: user.email,
-                        user_id: user.id
-                    }])
-                    .select()
-                    .single();
-
-                if (deptErr) {
-                    console.error("❌ Gagal membuat departemen 'Tata Kelola':", deptErr.message);
-                } else {
-                    activeDept = newDept;
-                    console.log("🏢 Sukses membuat departemen 'Tata Kelola' baru di database online:", activeDept.id);
-                }
+                profile = newProfile;
             }
+        }
 
-            if (activeDept) {
-                // Tautkan profil pengguna ke departemen ini di database online
-                const { error: linkErr } = await window.supabaseClient
-                    .from('akt_user_profiles')
-                    .update({ department_id: activeDept.id })
-                    .eq('id', user.id);
+        // 3. SUPREME SELF-HEALING: Pastikan departemen 'Tata Kelola' terdaftar di database online
+        let activeDept = profile ? profile.akt_departments : null;
+        
+        // Cari seluruh departemen yang dimiliki user
+        const { data: existingDepts } = await window.supabaseClient
+            .from('akt_departments')
+            .select('*')
+            .eq('user_id', user.id);
 
-                if (linkErr) {
-                    console.error("❌ Gagal menautkan departemen ke profil:", linkErr.message);
-                } else {
-                    // Muat ulang data profil terbaru
-                    const { data: updatedProfile } = await window.supabaseClient
-                        .from('akt_user_profiles')
-                        .select('*, akt_departments(*)')
-                        .eq('id', user.id)
-                        .single();
-                    if (updatedProfile) {
-                        profile = updatedProfile;
-                    }
-                }
+        if (existingDepts && existingDepts.length > 0) {
+            activeDept = existingDepts[0];
+            console.log("🏢 Departemen terdaftar ditemukan:", activeDept.name);
+        } else {
+            console.log("🏢 Belum ada departemen. Membuat departemen 'Tata Kelola'...");
+            const { data: newDept, error: deptErr } = await window.supabaseClient
+                .from('akt_departments')
+                .insert([{
+                    name: 'Tata Kelola',
+                    email: user.email,
+                    user_id: user.id
+                }])
+                .select()
+                .single();
+
+            if (deptErr) {
+                console.error("❌ Gagal membuat departemen 'Tata Kelola' baru:", deptErr.message);
+            } else {
+                activeDept = newDept;
+                console.log("🏢 Sukses membuat departemen 'Tata Kelola' baru:", activeDept.id);
+            }
+        }
+
+        // 4. SUPREME SELF-HEALING: Tautkan profil ke departemen jika belum terhubung
+        if (profile && activeDept && (!profile.department_id || profile.department_id !== activeDept.id)) {
+            console.log("🔗 Menautkan profil pengguna ke departemen di database online...");
+            const { error: linkErr } = await window.supabaseClient
+                .from('akt_user_profiles')
+                .update({ department_id: activeDept.id })
+                .eq('id', user.id);
+
+            if (linkErr) {
+                console.error("❌ Gagal menautkan departemen ke profil:", linkErr.message);
+            } else {
+                profile.department_id = activeDept.id;
+                profile.akt_departments = activeDept;
             }
         }
 
