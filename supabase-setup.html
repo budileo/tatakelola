@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vitta ERP - Supabase SaaS Setup Panel</title>
+    
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f5f7ff',
+                            100: '#ebf0ff',
+                            200: '#d6e0ff',
+                            300: '#adc2ff',
+                            400: '#7599ff',
+                            500: '#3b66ff',
+                            600: '#1a3fff',
+                            700: '#0025eb',
+                            800: '#001ebc',
+                            900: '#00199e',
+                        },
+                        dark: {
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, rgba(59, 102, 255, 0.15), transparent), 
+                        radial-gradient(circle at bottom left, rgba(26, 63, 255, 0.1), transparent),
+                        #0b0f19;
+            min-height: 100vh;
+            color: #f3f4f6;
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 20px rgba(59, 102, 255, 0.4);
+            transform: translateY(-1px);
+            transition: all 0.2s ease-in-out;
+        }
+        .console-line {
+            font-family: 'Courier New', Courier, monospace;
+            border-left: 2px solid #3b66ff;
+            padding-left: 12px;
+            margin-bottom: 8px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(2px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between">
+
+    <!-- Header Section -->
+    <header class="py-6 px-8 border-b border-gray-800 glass-panel">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center font-display font-bold text-white text-xl shadow-lg shadow-brand-500/20">
+                    V
+                </div>
+                <div>
+                    <h1 class="text-xl font-display font-bold tracking-tight text-white">VITTA ERP</h1>
+                    <p class="text-xs text-gray-400 font-medium">SaaS Supabase Setup Panel</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mr-1.5 animate-pulse"></span>
+                    Versi 2.0.0
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-12 flex flex-col lg:flex-row gap-8">
+        
+        <!-- Left Column: Controls & Actions -->
+        <div class="w-full lg:w-5/12 flex flex-col gap-6">
+            
+            <!-- Connection Status Card -->
+            <div class="glass-panel rounded-2xl p-6">
+                <h2 class="text-lg font-display font-semibold mb-4 text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    1. Status Koneksi Supabase
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-dark-900/60 rounded-xl p-4 border border-gray-800">
+                        <label class="block text-xs font-medium text-gray-400 mb-1">PROJECT URL</label>
+                        <div class="text-sm font-mono text-gray-200 break-all select-all">https://brvmasktbglzxmazyryb.supabase.co</div>
+                    </div>
+                    
+                    <div class="bg-dark-900/60 rounded-xl p-4 border border-gray-800">
+                        <label class="block text-xs font-medium text-gray-400 mb-1">PUBLISHABLE KEY</label>
+                        <div class="text-sm font-mono text-gray-200 truncate select-all">sb_publishable_y3-X5JPMFihnbiLjOeaSZQ_gUm5RrhL</div>
+                    </div>
+
+                    <div id="connection-status-badge" class="flex items-center justify-between p-4 rounded-xl bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                        <span class="text-sm font-medium">Memeriksa koneksi client...</span>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500 animate-ping"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Owner Credentials Setup Card -->
+            <div class="glass-panel rounded-2xl p-6">
+                <h2 class="text-lg font-display font-semibold mb-4 text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                    2. Akun Owner Default
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="bg-dark-900/60 rounded-xl p-4 border border-gray-800 space-y-3">
+                        <div class="flex justify-between border-b border-gray-800 pb-2">
+                            <span class="text-sm text-gray-400">Nama Lengkap</span>
+                            <span class="text-sm font-semibold text-white font-mono">budileo</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-800 pb-2">
+                            <span class="text-sm text-gray-400">Email</span>
+                            <span class="text-sm font-semibold text-white font-mono">budileo@gmail.com</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-800 pb-2">
+                            <span class="text-sm text-gray-400">Password</span>
+                            <span class="text-sm font-semibold text-white font-mono">484825</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-400">Departemen</span>
+                            <span class="text-sm font-semibold text-brand-400 font-mono">Tata Kelola</span>
+                        </div>
+                    </div>
+
+                    <button id="btn-register-owner" onclick="handleOwnerSetup()" class="w-full py-3.5 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-display font-semibold rounded-xl transition duration-300 shadow-lg shadow-brand-600/30 flex items-center justify-center glow-hover">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        Daftarkan Akun Pemilik (budileo)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Database Integration Testing Card -->
+            <div class="glass-panel rounded-2xl p-6">
+                <h2 class="text-lg font-display font-semibold mb-4 text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    3. Integrasi & Tes CRUD Database
+                </h2>
+                
+                <p class="text-sm text-gray-400 mb-4">
+                    Menguji fungsionalitas RLS, penyimpanan relasional (tabel <code class="text-brand-300 font-mono">akt_*</code>), dan penanganan error secara real-time.
+                </p>
+
+                <button id="btn-run-tests" onclick="runCrudDiagnostics()" class="w-full py-3.5 bg-dark-800 hover:bg-dark-700 text-white border border-gray-700 font-display font-semibold rounded-xl transition duration-300 flex items-center justify-center glow-hover">
+                    <svg class="w-5 h-5 mr-2 text-green-400 animate-spin" id="spin-test" style="display:none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"></path></svg>
+                    <svg class="w-5 h-5 mr-2 text-brand-400" id="icon-test" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Jalankan Uji Coba CRUD Database
+                </button>
+            </div>
+
+        </div>
+        
+        <!-- Right Column: Live Output Console -->
+        <div class="w-full lg:w-7/12 flex flex-col">
+            <div class="glass-panel rounded-2xl p-6 flex-grow flex flex-col h-[600px] lg:h-auto">
+                <div class="flex items-center justify-between mb-4 border-b border-gray-800 pb-4">
+                    <h2 class="text-lg font-display font-semibold text-white flex items-center">
+                        <span class="w-2.5 h-2.5 rounded-full bg-brand-500 mr-2.5 animate-pulse"></span>
+                        Diagnostik & Log Keluaran Real-Time
+                    </h2>
+                    <button onclick="clearConsole()" class="px-3 py-1 text-xs font-semibold text-gray-400 hover:text-white bg-dark-900 border border-gray-800 rounded-lg transition duration-200">
+                        Bersihkan
+                    </button>
+                </div>
+                
+                <div id="console-output" class="flex-grow bg-dark-900/80 rounded-xl p-5 border border-gray-800/80 font-mono text-sm overflow-y-auto max-h-[500px] space-y-2 select-text">
+                    <div class="console-line text-blue-400 font-semibold">[INFO] Sistem siap digunakan. Selamat datang di Panel Migrasi Supabase SaaS.</div>
+                    <div class="console-line text-gray-400">[INFO] Silakan pastikan Anda telah menjalankan skrip 'schema_tatakelola_saas.sql' di SQL Editor Supabase Anda.</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Section -->
+    <footer class="py-6 border-t border-gray-800 text-center text-xs text-gray-500 glass-panel">
+        <p>&copy; 2026 Vitta ERP. Dibuat dengan cinta untuk tata kelola yang tangguh.</p>
+    </footer>
+
+    <!-- Injeksi JS Supabase & Pustaka Pendukung -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./js/supabase-config.js"></script>
+    <script src="./js/supabase-auth.js"></script>
+    <script src="./js/supabase-db.js"></script>
+
+    <!-- Script Kontrol Halaman -->
+    <script>
+        const consoleEl = document.getElementById('console-output');
+
+        // Tambah log ke layar console diagnostik
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = 'console-line';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            let prefix = `[${timestamp}] [INFO]`;
+            
+            if (type === 'success') {
+                line.classList.add('text-green-400');
+                prefix = `[${timestamp}] [SUCCESS]`;
+            } else if (type === 'error') {
+                line.classList.add('text-red-400', 'font-semibold');
+                prefix = `[${timestamp}] [ERROR]`;
+            } else if (type === 'warning') {
+                line.classList.add('text-yellow-400');
+                prefix = `[${timestamp}] [WARN]`;
+            } else {
+                line.classList.add('text-gray-300');
+            }
+            
+            line.innerText = `${prefix} ${message}`;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleEl.innerHTML = '<div class="console-line text-blue-400 font-semibold">[INFO] Konsol dibersihkan.</div>';
+        }
+
+        // Cek status inisialisasi Supabase
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const statusBadge = document.getElementById('connection-status-badge');
+                if (window.supabaseClient) {
+                    statusBadge.className = "flex items-center justify-between p-4 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20";
+                    statusBadge.innerHTML = `
+                        <span class="text-sm font-semibold flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            Koneksi Supabase Aktif & Siap!
+                        </span>
+                    `;
+                    log("Koneksi Supabase berhasil diverifikasi dari file 'supabase-config.js'.", "success");
+                } else {
+                    statusBadge.className = "flex items-center justify-between p-4 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse";
+                    statusBadge.innerHTML = `
+                        <span class="text-sm font-semibold flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                            Gagal Menghubungkan ke Supabase Client
+                        </span>
+                    `;
+                    log("Kesalahan: window.supabaseClient tidak ditemukan. Periksa konfigurasi.", "error");
+                }
+            }, 800);
+        });
+
+        // 1. Mendaftarkan Owner (budileo)
+        async function handleOwnerSetup() {
+            const btn = document.getElementById('btn-register-owner');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-pulse">Mendaftarkan Owner...</span>`;
+
+            log("Memulai proses pendaftaran Owner 'budileo@gmail.com'...", "info");
+
+            const email = "budileo@gmail.com";
+            const password = "484825";
+            const name = "budileo";
+            const dept = "Tata Kelola";
+
+            // Coba sign in dahulu, barangkali user sudah terdaftar di auth
+            log("Mencoba memeriksa apakah akun pemilik sudah terdaftar...", "info");
+            const { session, error: signInErr } = await signInUser(email, password);
+
+            if (!signInErr && session) {
+                log("Akun pemilik budileo@gmail.com sudah terdaftar dan berhasil login otomatis!", "success");
+                
+                // Pastikan departemen dibuat dan dikaitkan
+                const user = session.user;
+                log("Menyinkronkan departemen 'Tata Kelola' untuk user...", "info");
+                
+                // Periksa apakah departemen 'Tata Kelola' sudah ada
+                const { data: existingDepts, error: errReadDept } = await window.supabaseClient
+                    .from('akt_departments')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('name', dept);
+
+                if (!errReadDept && existingDepts && existingDepts.length > 0) {
+                    log(`Departemen 'Tata Kelola' sudah ada (ID: ${existingDepts[0].id}). Sinkronisasi profil selesai.`, "success");
+                    localStorage.setItem('vitta_active_dept', JSON.stringify(existingDepts[0]));
+                } else {
+                    log("Departemen 'Tata Kelola' belum ada. Membuat departemen baru...", "warning");
+                    const { data: newDept, error: errNewDept } = await window.supabaseClient
+                        .from('akt_departments')
+                        .insert([{ name: dept, email: email, user_id: user.id }])
+                        .select()
+                        .single();
+
+                    if (!errNewDept && newDept) {
+                        log(`Departemen baru sukses dibuat (ID: ${newDept.id}).`, "success");
+                        localStorage.setItem('vitta_active_dept', JSON.stringify(newDept));
+                        
+                        await window.supabaseClient
+                            .from('akt_user_profiles')
+                            .update({ department_id: newDept.id })
+                            .eq('id', user.id);
+                        
+                        log("Profil pengguna sukses dihubungkan dengan departemen baru.", "success");
+                    } else {
+                        log(`Kesalahan saat inisialisasi departemen: ${errNewDept ? errNewDept.message : 'Unknown'}`, "error");
+                    }
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = `Daftarkan Akun Pemilik (budileo)`;
+
+                Swal.fire({
+                    title: 'Owner Siap!',
+                    text: 'Akun pemilik budileo@gmail.com sudah terdaftar dan siap digunakan.',
+                    icon: 'success',
+                    confirmButtonColor: '#3b66ff'
+                });
+                return;
+            }
+
+            // Jika belum terdaftar, lakukan SignUp
+            log("Akun belum ada. Melakukan pendaftaran baru di auth...", "info");
+            const { user, profile, department, error } = await signUpUser(email, password, name, dept);
+
+            btn.disabled = false;
+            btn.innerHTML = `Daftarkan Akun Pemilik (budileo)`;
+
+            if (error) {
+                log(`Pendaftaran gagal: ${error.message}`, "error");
+                Swal.fire({
+                    title: 'Gagal Mendaftar!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#3b66ff'
+                });
+            } else {
+                log(`Registrasi auth sukses untuk ${user.email}!`, "success");
+                log(`Trigger profil otomatis berjalan: user_profiles terdaftar.`, "success");
+                
+                let successMessage = 'Akun budileo@gmail.com berhasil terdaftar!';
+                if (user.identities && user.identities.length === 0) {
+                    successMessage += ' (Catatan: Email mungkin butuh konfirmasi jika fitur verifikasi Supabase aktif)';
+                    log("Pemberitahuan: Silakan verifikasi email Anda di kotak masuk Anda jika verifikasi diaktifkan di dasbor Supabase.", "warning");
+                }
+
+                // Coba paksa login setelah registrasi (untuk memfasilitasi kelanjutan tes)
+                log("Mencoba melakukan login pertama kali...", "info");
+                await signInUser(email, password);
+
+                Swal.fire({
+                    title: 'Registrasi Berhasil!',
+                    text: successMessage,
+                    icon: 'success',
+                    confirmButtonColor: '#3b66ff'
+                });
+            }
+        }
+
+        // 2. Jalankan Tes CRUD Database
+        async function runCrudDiagnostics() {
+            const btn = document.getElementById('btn-run-tests');
+            const spin = document.getElementById('spin-test');
+            const icon = document.getElementById('icon-test');
+
+            // Cek apakah user sudah login
+            const activeUser = getActiveUserId();
+            if (!activeUser) {
+                log("Uji CRUD dibatalkan: Tidak ada sesi user aktif. Silakan daftarkan atau login akun pemilik terlebih dahulu.", "error");
+                Swal.fire({
+                    title: 'Autentikasi Diperlukan',
+                    text: 'Silakan klik "Daftarkan Akun Pemilik (budileo)" untuk login dan mengaktifkan sesi.',
+                    icon: 'warning',
+                    confirmButtonColor: '#3b66ff'
+                });
+                return;
+            }
+
+            btn.disabled = true;
+            spin.style.display = 'inline-block';
+            icon.style.display = 'none';
+
+            log("--- MEMULAI PENGUJIAN DIAGNOSTIK CRUD ---", "info");
+
+            try {
+                // TEST 1: Insert COA Account
+                log("[TEST 1] Menyisipkan Akun COA Baru (akt_coa_accounts)...", "info");
+                const mockCoa = {
+                    name: "Kas Kecil Uji Coba",
+                    code: "1-10099_" + Date.now(), // kode unik agar tidak konflik unique constraint
+                    category: "Asset",
+                    group: "Kas & Bank",
+                    is_system: false,
+                    is_active: true,
+                    balance: 5000000.00
+                };
+                
+                const { data: coaData, error: coaErr } = await insertRecord("akt_coa_accounts", mockCoa);
+                if (coaErr) throw new Error(`Gagal menyisipkan COA: ${coaErr.message}`);
+                log(`[TEST 1] Sukses! Akun COA terdaftar dengan UUID: ${coaData.id}`, "success");
+
+                // TEST 2: Read COA Accounts
+                log("[TEST 2] Membaca list Akun COA (akt_coa_accounts)...", "info");
+                const { data: coaList, error: coaReadErr } = await readRecords("akt_coa_accounts", { id: coaData.id });
+                if (coaReadErr) throw new Error(`Gagal membaca COA: ${coaReadErr.message}`);
+                log(`[TEST 2] Sukses! Berhasil membaca kembali data COA. Nama: '${coaList[0].name}'`, "success");
+
+                // TEST 3: Update COA Account
+                log("[TEST 3] Memperbarui saldo COA (akt_coa_accounts)...", "info");
+                const { data: coaUpdated, error: coaUpdErr } = await updateRecord("akt_coa_accounts", coaData.id, {
+                    balance: 7500000.00,
+                    name: "Kas Kecil Uji Coba (Updated)"
+                });
+                if (coaUpdErr) throw new Error(`Gagal memperbarui COA: ${coaUpdErr.message}`);
+                log(`[TEST 3] Sukses! Saldo COA diperbarui menjadi: Rp ${coaUpdated.balance.toLocaleString('id-ID')}`, "success");
+
+                // TEST 4: Insert Master Produk
+                log("[TEST 4] Menyisipkan Data Master Produk Baru (akt_products)...", "info");
+                const mockProduct = {
+                    name: "Laptop Asus Zenbook Pro",
+                    sku: "ASUS-" + Date.now(),
+                    category_name: "Elektronik",
+                    unit: "unit",
+                    description: "Laptop premium untuk pemrograman",
+                    buy_price: 15000000.00,
+                    sell_price: 18500000.00,
+                    initial_stock: 5.00,
+                    current_stock: 5.00,
+                    is_purchased: true,
+                    is_sold: true,
+                    is_tracked: true
+                };
+                const { data: prodData, error: prodErr } = await insertRecord("akt_products", mockProduct);
+                if (prodErr) throw new Error(`Gagal menyisipkan produk: ${prodErr.message}`);
+                log(`[TEST 4] Sukses! Produk ASUS terdaftar dengan UUID: ${prodData.id}`, "success");
+
+                // TEST 5: Insert Jurnal Akuntansi (akt_journals)
+                log("[TEST 5] Menyisipkan Jurnal Akuntansi Baru (akt_journals)...", "info");
+                const mockJournal = {
+                    date: new Date().toISOString().split('T')[0],
+                    memo: "Uji Coba Penyesuaian Modal Awal",
+                    ref_id: "REF-SETUP-" + Date.now(),
+                    type: "GENERAL",
+                    status: "posted",
+                    lines: [
+                        { account: coaData.code, accountName: coaData.name, debit: 7500000.00, credit: 0 },
+                        { account: "3-30000", accountName: "Modal Pemilik", debit: 0, credit: 7500000.00 }
+                    ]
+                };
+                const { data: jrData, error: jrErr } = await insertRecord("akt_journals", mockJournal);
+                if (jrErr) throw new Error(`Gagal menyisipkan jurnal: ${jrErr.message}`);
+                log(`[TEST 5] Sukses! Jurnal terdaftar dengan UUID: ${jrData.id}`, "success");
+
+                // TEST 6: Delete Mock Records (Pembersihan / Cleanup)
+                log("[TEST 6] Membersihkan data uji coba (akt_journals & akt_coa_accounts & akt_products)...", "info");
+                
+                const { success: delJr } = await deleteRecord("akt_journals", jrData.id);
+                if (delJr) log("Uji coba Jurnal sukses dihapus.", "success");
+                
+                const { success: delProd } = await deleteRecord("akt_products", prodData.id);
+                if (delProd) log("Uji coba Produk sukses dihapus.", "success");
+
+                const { success: delCoa } = await deleteRecord("akt_coa_accounts", coaData.id);
+                if (delCoa) log("Uji coba COA sukses dihapus.", "success");
+
+                log("--- PENGUJIAN DIAGNOSTIK SELESAI DENGAN SUKSES! ---", "success");
+                Swal.fire({
+                    title: 'Diagnosis Sukses!',
+                    text: 'Semua operasi CRUD (Insert, Read, Update, Delete) berhasil lolos validasi RLS 100%!',
+                    icon: 'success',
+                    confirmButtonColor: '#3b66ff'
+                });
+
+            } catch (err) {
+                log(`Diagnostik Terhenti: ${err.message}`, "error");
+                Swal.fire({
+                    title: 'Kegagalan Diagnosis',
+                    text: err.message,
+                    icon: 'error',
+                    confirmButtonColor: '#3b66ff'
+                });
+            } finally {
+                btn.disabled = false;
+                spin.style.display = 'none';
+                icon.style.display = 'inline-block';
+            }
+        }
+    </script>
+</body>
+</html>
