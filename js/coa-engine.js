@@ -19,6 +19,7 @@
         // ══ 1 - ASET ══
         // Kas & Bank
         ['Kas', '1-10001', 'Kas & Bank', 'CASH'],
+        ['Bank BCA', '1-10002', 'Kas & Bank', 'BANK_BCA'],
         ['Rekening Mandiri', '1-10003', 'Kas & Bank', 'BANK_MANDIRI'],
         // Akun Piutang
         ['Piutang Usaha', '1-10100', 'Akun Piutang', 'AR'],
@@ -218,10 +219,9 @@
 
     // ─── AUTO SEED ───────────────────────────────────────────
     function seedAccounts() {
-        if (localStorage.getItem(SEED_FLAG) === 'true') return;
-
         const existing = loadAllAccounts();
         const existingCodes = new Set(existing.map(a => a.code));
+        let changed = false;
 
         const now = new Date().toISOString();
         SYSTEM_ACCOUNTS.forEach(([name, code, category, systemCode]) => {
@@ -242,10 +242,13 @@
                 created_at: now,
                 updated_at: now,
             });
+            changed = true;
         });
 
-        saveAllAccounts(existing);
-        localStorage.setItem(SEED_FLAG, 'true');
+        if (changed || localStorage.getItem(SEED_FLAG) !== 'true') {
+            saveAllAccounts(existing);
+            localStorage.setItem(SEED_FLAG, 'true');
+        }
     }
 
     // ─── CRUD ────────────────────────────────────────────────

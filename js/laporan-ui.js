@@ -347,7 +347,7 @@ function renderPurchases(purs, startDate, endDate) {
                         <tr>
                             <td class="px-4 py-2">${p.date}</td>
                             <td class="px-4 py-2 font-medium">${p.id}</td>
-                            <td class="px-4 py-2">${p.vendorName || '-'}</td>
+                            <td class="px-4 py-2">${p.supplierName || p.vendorName || '-'}</td>
                             <td class="px-4 py-2 text-right">${formatRp(p.subtotal)}</td>
                             <td class="px-4 py-2 text-right font-medium text-rose-400 print-text-dark">${formatRp(p.grandTotal)}</td>
                             <td class="px-4 py-2 text-right">${formatRp(p.totalPaid || 0)}</td>

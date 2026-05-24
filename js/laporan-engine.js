@@ -12,10 +12,18 @@ function buildTrialBalance(startDate, endDate) {
     
     // Inisialisasi
     accounts.forEach(acc => {
+        const firstChar = acc.code.charAt(0);
+        let type = 'Unknown';
+        if (firstChar === '1') type = 'Asset';
+        else if (firstChar === '2') type = 'Liability';
+        else if (firstChar === '3') type = 'Equity';
+        else if (firstChar === '4' || firstChar === '7') type = 'Revenue';
+        else if (['5', '6', '8', '9'].includes(firstChar)) type = 'Expense';
+
         trialBalance[acc.code] = {
             name: acc.name,
             category: acc.category,
-            type: acc.type,
+            type: type,
             debit: 0,
             credit: 0,
             balance: 0
@@ -28,10 +36,18 @@ function buildTrialBalance(startDate, endDate) {
         
         j.lines.forEach(line => {
             if (!trialBalance[line.account]) {
+                const firstChar = line.account.charAt(0);
+                let type = 'Unknown';
+                if (firstChar === '1') type = 'Asset';
+                else if (firstChar === '2') type = 'Liability';
+                else if (firstChar === '3') type = 'Equity';
+                else if (firstChar === '4' || firstChar === '7') type = 'Revenue';
+                else if (['5', '6', '8', '9'].includes(firstChar)) type = 'Expense';
+
                 trialBalance[line.account] = {
                     name: line.accountName,
                     category: 'Unknown',
-                    type: 'Unknown',
+                    type: type,
                     debit: 0,
                     credit: 0,
                     balance: 0
@@ -108,14 +124,14 @@ function generateNeraca(endDate) {
         if (acc.balance === 0) return;
         
         if (acc.type === 'Asset') {
-            if (acc.category === 'Aktiva Lancar' || acc.category === 'Kas & Bank' || acc.category === 'Persediaan') {
+            if (acc.category.includes('Lancar') || acc.category.includes('Kas') || acc.category.includes('Persediaan') || acc.category.includes('Piutang')) {
                 report.aset.lancar.push(acc);
             } else {
                 report.aset.tetap.push(acc);
             }
             report.aset.total += acc.balance;
         } else if (acc.type === 'Liability') {
-            if (acc.category === 'Kewajiban Jangka Pendek') {
+            if (acc.category.includes('Hutang') || acc.category.includes('Lancar') || acc.category.includes('Pendek')) {
                 report.kewajiban.pendek.push(acc);
             } else {
                 report.kewajiban.panjang.push(acc);
