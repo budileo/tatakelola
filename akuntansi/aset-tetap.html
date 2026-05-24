@@ -70,33 +70,8 @@
                                     <th class="px-6 py-4 font-semibold text-center">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-dark-700">
-                                <tr class="hover:bg-dark-700/30 transition-colors">
-                                    <td class="px-6 py-4 font-medium text-white">FA00001</td>
-                                    <td class="px-6 py-4">Mobil Operasional Avanza</td>
-                                    <td class="px-6 py-4 text-right">Rp 250.000.000</td>
-                                    <td class="px-6 py-4 text-right text-rose-400">Rp 50.000.000</td>
-                                    <td class="px-6 py-4 text-right text-emerald-400 font-medium">Rp 200.000.000</td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Aktif</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <button class="text-blue-400 hover:text-blue-300">Lihat</button>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-dark-700/30 transition-colors">
-                                    <td class="px-6 py-4 font-medium text-white">FA00002</td>
-                                    <td class="px-6 py-4">Laptop Macbook Pro 2026</td>
-                                    <td class="px-6 py-4 text-right">Rp 35.000.000</td>
-                                    <td class="px-6 py-4 text-right text-rose-400">Rp 7.000.000</td>
-                                    <td class="px-6 py-4 text-right text-emerald-400 font-medium">Rp 28.000.000</td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Aktif</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <button class="text-blue-400 hover:text-blue-300">Lihat</button>
-                                    </td>
-                                </tr>
+                            <tbody id="assetTableBody" class="divide-y divide-dark-700">
+                                <!-- Data aset dinamis akan diinjeksi di sini -->
                             </tbody>
                         </table>
                     </div>
@@ -121,19 +96,19 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="col-span-2 md:col-span-1">
                                 <label class="block text-sm font-medium text-gray-400 mb-1">Nama Aset</label>
-                                <input type="text" class="asset-input" placeholder="Misal: Mobil Operasional">
+                                <input type="text" id="inputAssetNama" class="asset-input" placeholder="Misal: Mobil Operasional">
                             </div>
                             <div class="col-span-2 md:col-span-1">
                                 <label class="block text-sm font-medium text-gray-400 mb-1">Nomor Aset</label>
-                                <input type="text" class="asset-input text-gray-500 bg-dark-800" value="FA00003" readonly>
+                                <input type="text" id="inputAssetNo" class="asset-input text-gray-500 bg-dark-800" value="AUTO" readonly>
                             </div>
                             <div class="col-span-2 md:col-span-1">
                                 <label class="block text-sm font-medium text-gray-400 mb-1">Tanggal Pembelian</label>
-                                <input type="date" class="asset-input">
+                                <input type="date" id="inputAssetTanggal" class="asset-input">
                             </div>
                             <div class="col-span-2 md:col-span-1">
                                 <label class="block text-sm font-medium text-gray-400 mb-1">Harga Perolehan (Rp)</label>
-                                <input type="number" class="asset-input" placeholder="0">
+                                <input type="number" id="inputAssetHarga" class="asset-input" placeholder="0">
                             </div>
                         </div>
 
@@ -149,23 +124,25 @@
                             <div id="depreciationSettings" class="grid grid-cols-2 gap-4">
                                 <div class="col-span-2 md:col-span-1">
                                     <label class="block text-sm font-medium text-gray-400 mb-1">Metode</label>
-                                    <select class="asset-input">
+                                    <select id="inputAssetMetode" class="asset-input">
                                         <option value="straight">Garis Lurus (Straight Line)</option>
                                         <option value="declining">Saldo Menurun (Declining Balance)</option>
                                     </select>
                                 </div>
                                 <div class="col-span-2 md:col-span-1">
                                     <label class="block text-sm font-medium text-gray-400 mb-1">Umur Ekonomis (Bulan)</label>
-                                    <input type="number" class="asset-input" placeholder="Masa pakai...">
+                                    <input type="number" id="inputAssetUmur" class="asset-input" placeholder="Masa pakai...">
                                 </div>
                                 <div class="col-span-2 md:col-span-1">
                                     <label class="block text-sm font-medium text-gray-400 mb-1">Nilai Residu / Sisa (Rp)</label>
-                                    <input type="number" class="asset-input" value="0">
+                                    <input type="number" id="inputAssetResidu" class="asset-input" value="0">
                                 </div>
                                 <div class="col-span-2 md:col-span-1">
                                     <label class="block text-sm font-medium text-gray-400 mb-1">Akun Beban Penyusutan</label>
-                                    <select class="asset-input">
-                                        <option value="1">6-60100 - Beban Penyusutan Kendaraan</option>
+                                    <select id="inputAssetAkun" class="asset-input">
+                                        <option value="6-60502">6-60502 - Penyusutan - Kendaraan</option>
+                                        <option value="6-60504">6-60504 - Penyusutan - Peralatan Kantor</option>
+                                        <option value="6-60500">6-60500 - Penyusutan - Bangunan</option>
                                     </select>
                                 </div>
                             </div>
@@ -174,7 +151,7 @@
                     
                     <div class="p-6 border-t border-dark-700 bg-dark-800 flex justify-end space-x-3">
                         <button onclick="toggleView('list')" class="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-dark-700 transition-colors">Batal</button>
-                        <button onclick="alert('Aset disimpan. Token dipotong 2.'); toggleView('list');" class="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-500/20 transition-colors flex items-center">
+                        <button onclick="saveAsset()" class="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-500/20 transition-colors flex items-center">
                             Simpan Aset
                         </button>
                     </div>
@@ -186,14 +163,78 @@
     <script src="../js/auth.js"></script>
     <script src="../js/sidebar.js"></script>
     <script>
+        const scopedKey = window.getScopedKey ? window.getScopedKey('vitta_assets') : 'vitta_assets';
+        let assets = [];
+
+        function loadAssets() {
+            const raw = localStorage.getItem(scopedKey);
+            if (raw) {
+                try {
+                    assets = JSON.parse(raw);
+                } catch(e) { assets = []; }
+            } else {
+                assets = [];
+            }
+        }
+
+        const formatRp = (num) => 'Rp ' + Math.round(num || 0).toLocaleString('id-ID');
+
+        function renderTable() {
+            loadAssets();
+            const tbody = document.getElementById('assetTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            if (assets.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                            Belum ada aset tetap yang didaftarkan. Klik "Daftarkan Aset" untuk memulai!
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            assets.forEach(a => {
+                const statusBadge = a.status === 'ACTIVE'
+                    ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Aktif</span>`
+                    : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">Nonaktif</span>`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-dark-700/30 transition-colors">
+                        <td class="px-6 py-4 font-medium text-white">${a.asset_no}</td>
+                        <td class="px-6 py-4">${a.name}</td>
+                        <td class="px-6 py-4 text-right">${formatRp(a.purchase_price)}</td>
+                        <td class="px-6 py-4 text-right text-rose-400">${formatRp(a.accum_dep)}</td>
+                        <td class="px-6 py-4 text-right text-emerald-400 font-medium">${formatRp(a.book_value)}</td>
+                        <td class="px-6 py-4 text-center">${statusBadge}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button class="text-blue-400 hover:text-blue-300" onclick="viewAsset('${a.id}')">Lihat</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function getNextAssetNo() {
+            const count = assets.length + 1;
+            return 'FA' + String(count).padStart(5, '0');
+        }
+
         function toggleView(view) {
             if (view === 'form') {
                 document.getElementById('listView').classList.add('hidden');
                 document.getElementById('formView').classList.remove('hidden');
                 document.getElementById('formView').classList.add('animate-fade-in-up');
+                
+                // Set default asset no
+                document.getElementById('inputAssetNo').value = getNextAssetNo();
+                document.getElementById('inputAssetTanggal').value = new Date().toISOString().split('T')[0];
             } else {
                 document.getElementById('formView').classList.add('hidden');
                 document.getElementById('listView').classList.remove('hidden');
+                renderTable();
             }
         }
 
@@ -208,6 +249,88 @@
                 settings.style.pointerEvents = 'none';
             }
         }
+
+        function saveAsset() {
+            const name = document.getElementById('inputAssetNama').value;
+            const tanggal = document.getElementById('inputAssetTanggal').value;
+            const harga = parseFloat(document.getElementById('inputAssetHarga').value) || 0;
+            const enableDep = document.getElementById('enableDepreciation').checked;
+            const metode = document.getElementById('inputAssetMetode').value;
+            const umur = parseInt(document.getElementById('inputAssetUmur').value) || 12;
+            const residu = parseFloat(document.getElementById('inputAssetResidu').value) || 0;
+            const akun = document.getElementById('inputAssetAkun').value;
+
+            if (!name || !tanggal || harga <= 0) {
+                alert("Mohon isi Nama, Tanggal, dan Harga perolehan aset dengan benar.");
+                return;
+            }
+
+            let accumDep = 0;
+            if (enableDep) {
+                const buyDate = new Date(tanggal);
+                const today = new Date();
+                const diffMonths = (today.getFullYear() - buyDate.getFullYear()) * 12 + today.getMonth() - buyDate.getMonth();
+                const monthsElapsed = Math.max(0, diffMonths);
+
+                const monthlyDep = (harga - residu) / umur;
+                accumDep = Math.min(harga - residu, monthlyDep * monthsElapsed);
+            }
+
+            const bookValue = harga - accumDep;
+            const newAsset = {
+                id: 'FA_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4),
+                asset_no: getNextAssetNo(),
+                name: name,
+                purchase_date: tanggal,
+                purchase_price: harga,
+                accum_dep: accumDep,
+                book_value: bookValue,
+                status: 'ACTIVE'
+            };
+
+            assets.push(newAsset);
+            localStorage.setItem(scopedKey, JSON.stringify(assets));
+
+            if (window.recordJournal) {
+                let assetCoaCode = '1-10704'; // Mesin & Peralatan
+                if (akun === '6-60502') assetCoaCode = '1-10703'; // Kendaraan
+                else if (akun === '6-60504') assetCoaCode = '1-10705'; // Peralatan Kantor
+                else if (akun === '6-60500') assetCoaCode = '1-10701'; // Bangunan
+
+                try {
+                    window.recordJournal({
+                        date: tanggal,
+                        memo: `Pembelian Aset Tetap: ${name} (${newAsset.asset_no})`,
+                        lines: [
+                            { account: assetCoaCode, accountName: 'Aset Tetap', debit: harga, credit: 0 },
+                            { account: '1-10001', accountName: 'Kas', debit: 0, credit: harga }
+                        ],
+                        refId: newAsset.id,
+                        type: 'ASSET_PURCHASE'
+                    });
+                } catch(je) {
+                    console.error("Gagal menjurnal pembelian aset:", je);
+                }
+            }
+
+            alert("Aset berhasil didaftarkan dan disimpan.");
+            toggleView('list');
+        }
+
+        function viewAsset(id) {
+            const a = assets.find(item => item.id === id);
+            if (!a) return;
+            alert(`Aset: ${a.name} (${a.asset_no})\nTanggal Beli: ${a.purchase_date}\nHarga: ${formatRp(a.purchase_price)}\nAkumulasi Penyusutan: ${formatRp(a.accum_dep)}\nNilai Buku: ${formatRp(a.book_value)}`);
+        }
+
+        // Pemicu dari auto-renderer di auth.js
+        window.renderTable = function() {
+            renderTable();
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTable();
+        });
     </script>
     <script src='../js/theme.js'></script>
 </body>

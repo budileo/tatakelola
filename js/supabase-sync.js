@@ -11,7 +11,8 @@
         'vitta_products': { table: 'akt_products', mapToDb: mapProductToDb, mapToLocal: mapProductToLocal },
         'vitta_stock_ledger': { table: 'akt_stock_ledger', mapToDb: mapStockToDb, mapToLocal: mapStockToLocal },
         'vitta_contacts': { table: 'akt_contacts', mapToDb: mapContactToDb, mapToLocal: mapContactToLocal },
-        'vitta_mock_departments': { table: 'akt_departments', mapToDb: mapDeptToDb, mapToLocal: mapDeptToLocal }
+        'vitta_mock_departments': { table: 'akt_departments', mapToDb: mapDeptToDb, mapToLocal: mapDeptToLocal },
+        'vitta_assets': { table: 'akt_assets', mapToDb: mapAssetToDb, mapToLocal: mapAssetToLocal }
     };
 
     // --- DETERMINISTIC UUID BRIDGE ---
@@ -124,6 +125,18 @@
         };
     }
 
+    function mapAssetToDb(a) {
+        return {
+            asset_no: a.asset_no || '',
+            name: a.name || '',
+            purchase_date: a.purchase_date || new Date().toISOString().split('T')[0],
+            purchase_price: parseFloat(a.purchase_price) || 0.00,
+            accum_dep: parseFloat(a.accum_dep) || 0.00,
+            book_value: parseFloat(a.book_value) || 0.00,
+            status: a.status || 'ACTIVE'
+        };
+    }
+
     // --- MAPPING FUNCTIONS (DB -> LOCAL) ---
     function mapCoaToLocal(c) {
         return {
@@ -216,6 +229,19 @@
         };
     }
 
+    function mapAssetToLocal(a) {
+        return {
+            id: a.id,
+            asset_no: a.asset_no,
+            name: a.name,
+            purchase_date: a.purchase_date,
+            purchase_price: parseFloat(a.purchase_price) || 0.00,
+            accum_dep: parseFloat(a.accum_dep) || 0.00,
+            book_value: parseFloat(a.book_value) || 0.00,
+            status: a.status
+        };
+    }
+
     // --- CORE PULL LOGIC (CLOUD TO CACHE) ---
     window.pullCloudData = async function() {
         if (!window.supabaseClient) return;
@@ -240,7 +266,7 @@
             }
 
             // 2. Ambil seluruh data tabel utama
-            const tables = ['akt_coa_accounts', 'akt_journals', 'akt_products', 'akt_stock_ledger', 'akt_contacts'];
+            const tables = ['akt_coa_accounts', 'akt_journals', 'akt_products', 'akt_stock_ledger', 'akt_contacts', 'akt_assets'];
             const promises = tables.map(tbl => 
                 window.supabaseClient.from(tbl).select('*').eq('user_id', user.id)
             );
@@ -253,7 +279,7 @@
             const activeDeptId = activeDept ? activeDept.id : null;
 
             // Inisialisasi struktur data kosong untuk setiap departemen
-            const keysToSync = ['vitta_coa_accounts', 'vitta_journals', 'vitta_products', 'vitta_stock_ledger', 'vitta_contacts'];
+            const keysToSync = ['vitta_coa_accounts', 'vitta_journals', 'vitta_products', 'vitta_stock_ledger', 'vitta_contacts', 'vitta_assets'];
             
             // Map dan kelompokkan data berdasarkan department_id
             results.forEach((res, idx) => {

@@ -142,7 +142,7 @@ function createJournalEntry(date, memo, lines, refId) {
 function initInvoiceStore() {
     const key = getScopedKey(KEYS.invoices);
     if (!localStorage.getItem(key)) {
-        saveData(KEYS.invoices, getDefaultInvoices());
+        saveData(KEYS.invoices, []);
     }
 }
 

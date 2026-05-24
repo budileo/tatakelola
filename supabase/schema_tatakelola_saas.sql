@@ -197,3 +197,29 @@ CREATE TRIGGER on_auth_user_created_akt
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_akt_user();
 
+
+-- ============================================================
+-- 8. Tabel Aset Tetap & Penyusutan (akt_assets)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.akt_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_id UUID NOT NULL,
+    department_id UUID REFERENCES public.akt_departments(id) ON DELETE CASCADE,
+    asset_no VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    purchase_date DATE NOT NULL,
+    purchase_price NUMERIC(15,2) DEFAULT 0.00,
+    accum_dep NUMERIC(15,2) DEFAULT 0.00,
+    book_value NUMERIC(15,2) DEFAULT 0.00,
+    status VARCHAR(20) DEFAULT 'ACTIVE'
+);
+
+ALTER TABLE public.akt_assets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow CRUD own assets" ON public.akt_assets
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_akt_assets_no ON public.akt_assets(asset_no);
+
+
