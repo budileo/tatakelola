@@ -99,16 +99,73 @@ async function signInUser(email, password) {
 
         if (error) throw error;
 
-        // Ambil profil lengkap setelah berhasil login
         const user = data.user;
         const session = data.session;
 
-        // Simpan data user format lokal untuk kompatibilitas dengan Vitta ERP
-        const { data: profile } = await window.supabaseClient
+        // Ambil profil lengkap setelah berhasil login
+        let { data: profile } = await window.supabaseClient
             .from('akt_user_profiles')
             .select('*, akt_departments(*)')
             .eq('id', user.id)
             .single();
+
+        // SELF-HEALING: Jika profil ada tetapi belum memiliki departemen terkait di database online
+        let activeDept = profile ? profile.akt_departments : null;
+        if (profile && !activeDept) {
+            console.log("🏢 Departemen tidak terdeteksi untuk user ini. Mencari/membuat departemen 'Tata Kelola'...");
+            
+            // Periksa apakah departemen 'Tata Kelola' sudah pernah dibuat di database online
+            const { data: existingDepts } = await window.supabaseClient
+                .from('akt_departments')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('name', 'Tata Kelola');
+
+            if (existingDepts && existingDepts.length > 0) {
+                activeDept = existingDepts[0];
+                console.log("🏢 Menemukan departemen 'Tata Kelola' yang sudah ada:", activeDept.id);
+            } else {
+                // Buat departemen baru di database online
+                const { data: newDept, error: deptErr } = await window.supabaseClient
+                    .from('akt_departments')
+                    .insert([{
+                        name: 'Tata Kelola',
+                        email: user.email,
+                        user_id: user.id
+                    }])
+                    .select()
+                    .single();
+
+                if (deptErr) {
+                    console.error("❌ Gagal membuat departemen 'Tata Kelola':", deptErr.message);
+                } else {
+                    activeDept = newDept;
+                    console.log("🏢 Sukses membuat departemen 'Tata Kelola' baru di database online:", activeDept.id);
+                }
+            }
+
+            if (activeDept) {
+                // Tautkan profil pengguna ke departemen ini di database online
+                const { error: linkErr } = await window.supabaseClient
+                    .from('akt_user_profiles')
+                    .update({ department_id: activeDept.id })
+                    .eq('id', user.id);
+
+                if (linkErr) {
+                    console.error("❌ Gagal menautkan departemen ke profil:", linkErr.message);
+                } else {
+                    // Muat ulang data profil terbaru
+                    const { data: updatedProfile } = await window.supabaseClient
+                        .from('akt_user_profiles')
+                        .select('*, akt_departments(*)')
+                        .eq('id', user.id)
+                        .single();
+                    if (updatedProfile) {
+                        profile = updatedProfile;
+                    }
+                }
+            }
+        }
 
         const vittaUser = {
             id: user.id,
@@ -116,13 +173,13 @@ async function signInUser(email, password) {
             full_name: profile ? profile.full_name : 'User Pemilik',
             role: profile ? profile.role : 'OWNER',
             status: profile ? profile.status : 'ACTIVE',
-            department_id: profile && profile.akt_departments ? profile.akt_departments.id : null,
-            department_name: profile && profile.akt_departments ? profile.akt_departments.name : 'Tata Kelola'
+            department_id: activeDept ? activeDept.id : null,
+            department_name: activeDept ? activeDept.name : 'Tata Kelola'
         };
 
         localStorage.setItem('vitta_user', JSON.stringify(vittaUser));
-        if (profile && profile.akt_departments) {
-            localStorage.setItem('vitta_active_dept', JSON.stringify(profile.akt_departments));
+        if (activeDept) {
+            localStorage.setItem('vitta_active_dept', JSON.stringify(activeDept));
         }
 
         return { session, user, error: null };

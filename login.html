@@ -75,7 +75,7 @@
     <script>
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (typeof signInUser === 'undefined') {
+            if (typeof signInUser === 'undefined' || typeof signUpUser === 'undefined') {
                 alert('Modul otentikasi sedang dimuat. Silakan coba sesaat lagi.');
                 return;
             }
@@ -93,15 +93,39 @@
             btn.disabled = true;
             btn.innerText = "Memproses...";
 
-            const { session, user, error } = await signInUser(loginEmail, password);
+            let result = await signInUser(loginEmail, password);
+
+            // SELF-HEALING AUTO-SIGNUP: Jika user mencoba login budileo@gmail.com dan gagal karena belum terdaftar
+            if (result.error && (result.error.message.includes("Invalid login credentials") || result.error.message.includes("not found")) && loginEmail === 'budileo@gmail.com') {
+                console.log("🏢 Akun pemilik belum terdaftar di Supabase Auth. Melakukan registrasi otomatis...");
+                btn.innerText = "Mendaftarkan Owner...";
+                
+                // Daftarkan owner secara otomatis ke database online Supabase
+                const signupResult = await signUpUser(loginEmail, password, 'budileo', 'Tata Kelola');
+                
+                if (!signupResult.error) {
+                    console.log("🏢 Registrasi owner otomatis sukses. Mencoba masuk kembali...");
+                    btn.innerText = "Mencoba Masuk...";
+                    result = await signInUser(loginEmail, password);
+                } else {
+                    result.error = signupResult.error;
+                }
+            }
 
             btn.disabled = false;
             btn.innerText = originalText;
 
-            if (!error && session) {
+            if (!result.error && result.session) {
                 window.location.href = 'index.html';
             } else {
-                alert('Login gagal: ' + (error ? error.message : 'Kredensial tidak valid. Gunakan budileo / 484825 jika belum diatur.'));
+                let errorMsg = result.error ? result.error.message : 'Kredensial tidak valid.';
+                
+                // Tambahkan instruksi informatif jika email confirmation menghambat login
+                if (result.error && result.error.message.includes("Email not confirmed")) {
+                    errorMsg += "\n\n💡 TIPS SAAS: Supabase mendeteksi verifikasi email aktif. Silakan periksa inbox/spam email Anda untuk melakukan konfirmasi, ATAU nonaktifkan fitur 'Confirm email' di Dashboard Supabase -> Auth -> Providers -> Email Anda agar pendaftaran instan dapat berjalan.";
+                }
+                
+                alert('Login gagal: ' + errorMsg);
             }
         });
     </script>
