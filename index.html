@@ -143,9 +143,9 @@
 
     <script src="js/auth.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        function initPortal() {
             const user = window.VITTA_USER;
-            if (!user) return; // auth.js sudah menangani
+            if (!user) return;
 
             // Elemen UI
             const deptSelector = document.getElementById('deptSelector');
@@ -153,8 +153,9 @@
             const portalGrid = document.getElementById('portalGrid');
             const deptCardsContainer = document.getElementById('deptCards');
 
-            // Set greeting di selector
-            document.getElementById('deptSelectorGreeting').innerText = `Selamat Datang, ${user.username} (${user.role})`;
+            // Set greeting di selector (gunakan nama lengkap dari Supabase)
+            const displayName = user.full_name || user.username || user.email || 'User Pemilik';
+            document.getElementById('deptSelectorGreeting').innerText = `Selamat Datang, ${displayName} (${user.role})`;
 
             // Ambil info departemen
             const accessibleDepts = window.getUserDepartments ? window.getUserDepartments() : [];
@@ -188,7 +189,7 @@
                 mainHeader.classList.remove('hidden');
                 portalGrid.classList.remove('hidden');
 
-                document.getElementById('userGreeting').innerText = `Selamat Datang, ${user.username} (${user.role})`;
+                document.getElementById('userGreeting').innerText = `Selamat Datang, ${displayName} (${user.role})`;
                 document.getElementById('userDeptInfo').innerText = `Departemen: ${activeDept.name}`;
 
                 // Konfigurasi hak akses berbasis role
@@ -213,7 +214,15 @@
                     }
                 });
             }
-        });
+        }
+
+        // Jalankan inisialisasi saat event kustom Supabase SaaS siap
+        window.addEventListener('vitta-saas-ready', initPortal);
+
+        // Jalankan langsung jika sudah siap (misalnya saat reload lambat)
+        if (window.VITTA_USER) {
+            initPortal();
+        }
 
         // Dipanggil saat kartu departemen diklik
         window.selectDepartment = function(deptId) {
@@ -233,9 +242,15 @@
         };
 
         function handleLogout() {
-            localStorage.removeItem('vitta_user');
-            localStorage.removeItem('vitta_active_dept');
-            window.location.href = 'login.html';
+            if (window.signOutUser) {
+                window.signOutUser().then(() => {
+                    window.location.href = 'login.html';
+                });
+            } else {
+                localStorage.removeItem('vitta_user');
+                localStorage.removeItem('vitta_active_dept');
+                window.location.href = 'login.html';
+            }
         }
     </script>
 </body>
