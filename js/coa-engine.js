@@ -280,7 +280,23 @@
     }
 
     function getAccounts() {
-        const all = loadAllAccounts();
+        let all = loadAllAccounts();
+        
+        // --- SUPREME SELF-HEALING ---
+        // Cegah wiped out oleh pullCloudData jika cloud masih kosong
+        const existingCodes = new Set(all.map(a => a.code));
+        let missingSystem = false;
+        for (const [name, code] of SYSTEM_ACCOUNTS) {
+            if (!existingCodes.has(code)) {
+                missingSystem = true;
+                break;
+            }
+        }
+        if (missingSystem || all.length === 0) {
+            seedAccounts();
+            all = loadAllAccounts();
+        }
+
         const activeDept = window.getActiveDept ? window.getActiveDept() : null;
         const activeDeptId = activeDept ? activeDept.id : null;
         
