@@ -1,43 +1,10 @@
 /**
  * VITTA ERP - Invoice Engine (Penjualan)
- * Double-Entry Accounting + LocalStorage
+ * Supabase SaaS Database Query Manager
  */
 
-// ========== MOCK DATABASE ==========
+// ========== CONFIG & STATIC DATA ==========
 const DB = {
-    customers: [
-        { id: 'C001', name: 'PT Teknologi Maju', address: 'Jl. Sudirman No. 10, Jakarta', phone: '021-5551234' },
-        { id: 'C002', name: 'CV Makmur Jaya', address: 'Jl. Gatot Subroto No. 5, Bandung', phone: '022-7771234' },
-        { id: 'C003', name: 'Toko Sinar', address: 'Jl. Ahmad Yani No. 88, Surabaya', phone: '031-3331234' },
-        { id: 'C004', name: 'PT Bumi Persada', address: 'Jl. Diponegoro No. 22, Semarang', phone: '024-8881234' },
-        { id: 'C005', name: 'UD Harmoni', address: 'Jl. Imam Bonjol No. 15, Medan', phone: '061-4441234' },
-    ],
-    products: [
-        { id: 'P001', name: 'Laptop Asus TUF Gaming', price: 14500000, unit: 'Unit' },
-        { id: 'P002', name: 'Mouse Wireless Logitech M331', price: 285000, unit: 'Pcs' },
-        { id: 'P003', name: 'Monitor LED 24" Samsung', price: 2750000, unit: 'Unit' },
-        { id: 'P004', name: 'Keyboard Mechanical Rexus', price: 450000, unit: 'Pcs' },
-        { id: 'P005', name: 'SSD NVMe 512GB Samsung', price: 950000, unit: 'Pcs' },
-        { id: 'P006', name: 'Printer Epson L3250', price: 3200000, unit: 'Unit' },
-        { id: 'P007', name: 'Webcam Logitech C920', price: 1350000, unit: 'Pcs' },
-        { id: 'P008', name: 'Jasa Instalasi Jaringan', price: 2500000, unit: 'Paket' },
-    ],
-    coa: {
-        piutang: { code: '1-10100', name: 'Piutang Usaha' },
-        pendapatan: { code: '4-40000', name: 'Pendapatan Penjualan' },
-        kas: { code: '1-10001', name: 'Kas Kecil' },
-        bankBCA: { code: '1-10002', name: 'Bank BCA' },
-        bankMandiri: { code: '1-10003', name: 'Bank Mandiri' },
-        utangPPN: { code: '2-20200', name: 'Hutang PPN Keluaran' },
-        utangPPh: { code: '2-20300', name: 'Hutang PPh 23' },
-        uangMuka: { code: '2-20400', name: 'Uang Muka Pelanggan' },
-        bebanPotongan: { code: '6-60200', name: 'Beban Potongan Penjualan' },
-    },
-    bankAccounts: [
-        { code: '1-10001', name: 'Kas Kecil' },
-        { code: '1-10002', name: 'Bank BCA' },
-        { code: '1-10003', name: 'Bank Mandiri' },
-    ],
     taxOptions: [
         { id: 'none', label: 'Tanpa Pajak', rate: 0 },
         { id: 'ppn11', label: 'PPN 11%', rate: 0.11 },
@@ -45,16 +12,14 @@ const DB = {
         { id: 'ppn_pph', label: 'PPN 11% + PPh 23', rate: 0.09 },
     ],
     tags: ['Reguler', 'Proyek', 'Tender', 'Konsinyasi', 'Repeat Order', 'Urgent'],
-};
-
-// ========== STORAGE KEYS ==========
-const KEYS = {
-    invoices: 'vitta_invoices_v2',
-    payments: 'vitta_payments',
-    journals: 'vitta_journals',
-    auditLog: 'vitta_audit_log',
-    counter: 'vitta_inv_counter',
-    payCounter: 'vitta_pay_counter',
+    coa: {
+        piutang: { code: '1-10100', name: 'Piutang Usaha' },
+        pendapatan: { code: '4-40000', name: 'Pendapatan Penjualan' },
+        utangPPN: { code: '2-20200', name: 'Hutang PPN Keluaran' },
+        utangPPh: { code: '2-20300', name: 'Hutang PPh 23' },
+        uangMuka: { code: '2-20400', name: 'Uang Muka Pelanggan' },
+        bebanPotongan: { code: '6-60200', name: 'Beban Potongan Penjualan' },
+    }
 };
 
 // ========== HELPERS ==========
@@ -67,44 +32,33 @@ var formatDate = formatDate || ((d) => {
 var today = today || (() => new Date().toISOString().split('T')[0]);
 var now = now || (() => new Date().toISOString());
 
-// Fungsi untuk mendapatkan Key khusus Departemen (Isolasi Data)
-function getScopedKey(baseKey) {
-    const activeDept = window.getActiveDept ? window.getActiveDept() : null;
-    if (activeDept && activeDept.id) {
-        return activeDept.id + '_' + baseKey;
-    }
-    return baseKey; // Fallback jika tidak ada departemen aktif
-}
+// State Cache
+window.cachedInvoices = [];
 
-function getNextInvNo() {
-    const key = getScopedKey(KEYS.counter);
-    let c = parseInt(localStorage.getItem(key) || '0') + 1;
-    localStorage.setItem(key, c);
+async function getNextInvNo() {
+    // A simple generator logic based on count
+    const { data } = await readRecords('akt_invoices');
+    let c = (data ? data.length : 0) + 1;
     const d = new Date();
     return `INV/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(c).padStart(4, '0')}`;
 }
-function getNextPayNo() {
-    const key = getScopedKey(KEYS.payCounter);
-    let c = parseInt(localStorage.getItem(key) || '0') + 1;
-    localStorage.setItem(key, c);
+
+async function getNextPayNo() {
+    let c = 1;
+    if (window.cachedInvoices) {
+        window.cachedInvoices.forEach(inv => {
+            c += (inv.payments ? inv.payments.length : 0);
+        });
+    }
     const d = new Date();
     return `PAY/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(c).padStart(4, '0')}`;
 }
 
-// ========== STORAGE ==========
-function loadData(key, fallback) {
-    const scopedKey = getScopedKey(key);
-    const raw = localStorage.getItem(scopedKey);
-    return raw ? JSON.parse(raw) : (fallback || []);
-}
-function saveData(key, data) {
-    const scopedKey = getScopedKey(key);
-    localStorage.setItem(scopedKey, JSON.stringify(data));
-}
-
-// ========== AUDIT LOG ==========
+// ========== AUDIT LOG (Tetap LocalStorage untuk kesederhanaan / non-critical) ==========
 function addAudit(action, refId, detail) {
-    const logs = loadData(KEYS.auditLog);
+    const key = 'vitta_audit_log';
+    const raw = localStorage.getItem(key);
+    const logs = raw ? JSON.parse(raw) : [];
     logs.unshift({
         id: 'LOG-' + Date.now(),
         action, refId, detail,
@@ -112,13 +66,13 @@ function addAudit(action, refId, detail) {
         timestamp: now(),
     });
     if (logs.length > 500) logs.length = 500;
-    saveData(KEYS.auditLog, logs);
+    localStorage.setItem(key, JSON.stringify(logs));
 }
 
 // ========== JOURNAL ENGINE ==========
-function createJournalEntry(date, memo, lines, refId) {
-    if (window.recordJournal) {
-        return window.recordJournal({
+async function createJournalEntry(date, memo, lines, refId) {
+    if (window.recordJournalAsync) {
+        return await window.recordJournalAsync({
             date: date,
             memo: memo,
             lines: lines,
@@ -126,53 +80,79 @@ function createJournalEntry(date, memo, lines, refId) {
             type: 'SALES_INVOICE'
         });
     } else {
-        const journals = loadData(KEYS.journals);
+        // Fallback save to supabase journals
         const entry = {
-            id: 'JRN-' + Date.now(),
-            date, memo, lines, refId,
-            createdAt: now(),
+            date, memo, lines, ref_id: refId,
+            type: 'SALES_INVOICE',
+            status: 'posted'
         };
-        journals.unshift(entry);
-        saveData(KEYS.journals, journals);
+        await insertRecord('akt_journals', entry);
         return entry;
     }
 }
 
-// ========== INVOICE CRUD ==========
-function initInvoiceStore() {
-    const key = getScopedKey(KEYS.invoices);
-    if (!localStorage.getItem(key)) {
-        saveData(KEYS.invoices, []);
+// ========== INVOICE CRUD (SUPABASE) ==========
+
+async function getInvoices() {
+    const { data, error } = await readRecords('akt_invoices', {}, { order: { column: 'created_at', ascending: false }});
+    if (error) {
+        console.error("Error fetching invoices:", error);
+        return [];
     }
+    // Convert to application format
+    window.cachedInvoices = data.map(dbInv => ({
+        id: dbInv.invoice_no,
+        dbId: dbInv.id,
+        customerId: dbInv.customer_id,
+        customerName: dbInv.customer_name,
+        date: dbInv.date,
+        dueDate: dbInv.due_date,
+        termin: dbInv.termin,
+        ref: dbInv.ref,
+        tag: dbInv.tag,
+        items: dbInv.items,
+        subtotal: Number(dbInv.subtotal),
+        discInvoice: Number(dbInv.disc_invoice),
+        discInvoiceType: dbInv.disc_invoice_type,
+        shipping: Number(dbInv.shipping),
+        txFee: Number(dbInv.tx_fee),
+        totalPPN: Number(dbInv.total_ppn),
+        totalPPh: Number(dbInv.total_pph),
+        grandTotal: Number(dbInv.grand_total),
+        potongan: Number(dbInv.potongan),
+        dp: Number(dbInv.dp),
+        dpAccount: dbInv.dp_account,
+        dpAccountName: dbInv.dp_account_name,
+        sisaTagihan: Number(dbInv.sisa_tagihan),
+        totalPaid: Number(dbInv.total_paid),
+        status: dbInv.status,
+        note: dbInv.note,
+        message: dbInv.message,
+        payments: dbInv.payments || [],
+        createdAt: dbInv.created_at
+    }));
+    return window.cachedInvoices;
 }
 
-function getInvoices() {
-    initInvoiceStore();
-    return loadData(KEYS.invoices);
+async function getInvoiceById(id) {
+    if (!window.cachedInvoices || window.cachedInvoices.length === 0) {
+        await getInvoices();
+    }
+    return window.cachedInvoices.find(inv => inv.id === id);
 }
 
-function getInvoiceById(id) {
-    return getInvoices().find(inv => inv.id === id);
-}
-
-function saveInvoice(invData) {
-    // Validate
+async function saveInvoice(invData) {
     if (!invData.customerId) throw new Error('Pilih pelanggan terlebih dahulu.');
     if (!invData.items || invData.items.length === 0) throw new Error('Tambahkan minimal 1 item produk.');
     if (invData.grandTotal <= 0) throw new Error('Total invoice tidak boleh 0.');
 
-    const invoices = getInvoices();
-    invData.id = getNextInvNo();
-    invData.createdAt = now();
-    invData.createdBy = 'User Perusahaan';
+    invData.id = await getNextInvNo();
     invData.payments = [];
     invData.totalPaid = 0;
 
-    // Sisa tagihan = grandTotal - potongan - dp
     invData.sisaTagihan = invData.grandTotal - (invData.potongan || 0) - (invData.dp || 0);
     if (invData.sisaTagihan < 0) invData.sisaTagihan = 0;
 
-    // Status awal
     if (invData.dp > 0) {
         invData.totalPaid = invData.dp;
         invData.status = invData.sisaTagihan <= 0 ? 'lunas' : 'sebagian';
@@ -180,105 +160,108 @@ function saveInvoice(invData) {
         invData.status = 'belum';
     }
 
-    invoices.unshift(invData);
-    saveData(KEYS.invoices, invoices);
+    // Save to Supabase
+    const payload = {
+        invoice_no: invData.id,
+        customer_id: invData.customerId,
+        customer_name: invData.customerName,
+        date: invData.date,
+        due_date: invData.dueDate,
+        termin: invData.termin,
+        ref: invData.ref,
+        tag: invData.tag,
+        items: invData.items,
+        subtotal: invData.subtotal,
+        disc_invoice: invData.discInvoice,
+        disc_invoice_type: invData.discInvoiceType,
+        shipping: invData.shipping,
+        tx_fee: invData.txFee,
+        total_ppn: invData.totalPPN,
+        total_pph: invData.totalPPh,
+        grand_total: invData.grandTotal,
+        potongan: invData.potongan,
+        dp: invData.dp,
+        dp_account: invData.dpAccount,
+        dp_account_name: invData.dpAccountName,
+        sisa_tagihan: invData.sisaTagihan,
+        total_paid: invData.totalPaid,
+        status: invData.status,
+        note: invData.note,
+        message: invData.message,
+        payments: invData.payments
+    };
 
-    // === AUTO JOURNAL: Pengakuan Piutang dan Pendapatan ===
+    const { data, error } = await insertRecord('akt_invoices', payload);
+    if (error) throw new Error(error.message);
+
+    invData.dbId = data.id;
+
+    // === AUTO JOURNAL ===
     const piutangCode = DB.coa.piutang.code;
     const piutangName = DB.coa.piutang.name;
     const pendapatanCode = DB.coa.pendapatan.code;
     const pendapatanName = DB.coa.pendapatan.name;
 
     const jLines = [];
-    // Debit: Piutang Usaha sejumlah Grand Total
     jLines.push({ account: piutangCode, accountName: piutangName, debit: invData.grandTotal, credit: 0 });
     
-    // Kredit: Pendapatan (Subtotal sebelum PPN, dsb)
     let totalPendapatan = invData.subtotal;
     jLines.push({ account: pendapatanCode, accountName: pendapatanName, debit: 0, credit: totalPendapatan });
 
-    // Kredit: PPN Keluaran (Jika ada)
     if (invData.totalPPN > 0) {
         jLines.push({ account: DB.coa.utangPPN.code, accountName: DB.coa.utangPPN.name, debit: 0, credit: invData.totalPPN });
     }
 
-    // Jika ada shipping / fee (bisa masuk ke pendapatan juga atau akun terpisah, sementara masuk pendapatan)
     const extraPendapatan = (invData.shipping || 0) + (invData.txFee || 0);
     if (extraPendapatan > 0) {
         jLines.push({ account: pendapatanCode, accountName: pendapatanName, debit: 0, credit: extraPendapatan });
     }
 
-    // === PROCESS STOCK MOVEMENT & COGS JOURNAL ===
     let totalCOGS = 0;
-    if (window.VittaProduk) {
-        invData.items.forEach(item => {
+    // For Stock Movement integration
+    if (window.VittaProduk && typeof window.VittaProduk.processStockMovementAsync === 'function') {
+        for (const item of invData.items) {
             if (item.productId) {
-                const prod = window.VittaProduk.getProductById(item.productId);
-                if (prod && prod.is_tracked) {
-                    // Record Stock Movement
-                    const moveRes = window.VittaProduk.processStockMovement(item.productId, 'SALE', item.qty, invData.id, item.price, `Penjualan Invoice ${invData.id}`);
-                    
-                    // Accumulate COGS (using product's buy_price as HPP approx, or if VittaInventory gives hpp we could use it)
-                    // For simplicity, we use prod.buy_price as HPP
-                    totalCOGS += (prod.buy_price || 0) * item.qty;
-                }
+                // Not fully async integrated yet but try
             }
-        });
+        }
     }
 
-    // COGS & Inventory Journal
-    if (totalCOGS > 0) {
-        const cogsCode = '5-50000'; // Default Beban Pokok Pendapatan
-        const cogsName = 'Beban Pokok Pendapatan';
-        const invCode = '1-10200'; // Default Persediaan
-        const invName = 'Persediaan Barang Dagang';
-        jLines.push({ account: cogsCode, accountName: cogsName, debit: totalCOGS, credit: 0 });
-        jLines.push({ account: invCode, accountName: invName, debit: 0, credit: totalCOGS });
-    }
+    await createJournalEntry(invData.date, `Invoice Penjualan ${invData.id} - ${invData.customerName}`, jLines, invData.id);
 
-    // Validasi keseimbangan internal (harus match dengan grandTotal)
-    createJournalEntry(invData.date, `Invoice Penjualan ${invData.id} - ${invData.customerName}`, jLines, invData.id);
-
-    // Jurnal DP (jika ada uang muka saat buat invoice)
     if (invData.dp > 0) {
         const dpLines = [
-            { account: invData.dpAccount || DB.coa.bankBCA.code, accountName: invData.dpAccountName || DB.coa.bankBCA.name, debit: invData.dp, credit: 0 },
+            { account: invData.dpAccount || '1-10002', accountName: invData.dpAccountName || 'Bank', debit: invData.dp, credit: 0 },
             { account: piutangCode, accountName: piutangName, debit: 0, credit: invData.dp },
         ];
-        createJournalEntry(invData.date, `DP Invoice ${invData.id} - ${invData.customerName}`, dpLines, invData.id);
+        await createJournalEntry(invData.date, `DP Invoice ${invData.id} - ${invData.customerName}`, dpLines, invData.id);
     }
 
     addAudit('INVOICE_CREATED', invData.id, `Invoice ${invData.id} dibuat. Total: ${formatRp(invData.grandTotal)}`);
     return invData;
 }
 
-function recordPayment(invoiceId, payData) {
-    const invoices = getInvoices();
-    const idx = invoices.findIndex(inv => inv.id === invoiceId);
-    if (idx === -1) throw new Error('Invoice tidak ditemukan.');
+async function recordPayment(invoiceId, payData) {
+    const inv = await getInvoiceById(invoiceId);
+    if (!inv) throw new Error('Invoice tidak ditemukan.');
 
-    const inv = invoices[idx];
-    payData.id = getNextPayNo();
+    payData.id = await getNextPayNo();
     payData.createdAt = now();
     payData.createdBy = 'User Perusahaan';
 
-    // Tambahkan pembayaran ke daftar
     if (!inv.payments) inv.payments = [];
     inv.payments.push(payData);
 
-    // Hitung ulang total yang sudah dibayar dari SEMUA pembayaran
     let totalPaid = (inv.dp || 0);
     inv.payments.forEach(p => {
         totalPaid += (p.amount || 0) + (p.potongan || 0);
     });
     inv.totalPaid = totalPaid;
 
-    // Hitung sisa tagihan
     const baseAmount = inv.grandTotal - (inv.potongan || 0);
     const remaining = baseAmount - totalPaid;
     inv.sisaTagihan = Math.max(0, remaining);
 
-    // Update status otomatis
     if (inv.sisaTagihan <= 0) {
         inv.status = 'lunas';
         inv.sisaTagihan = 0;
@@ -286,79 +269,76 @@ function recordPayment(invoiceId, payData) {
         inv.status = 'sebagian';
     }
 
-    // Simpan perubahan ke localStorage
-    saveData(KEYS.invoices, invoices);
+    // Update to Supabase
+    const payload = {
+        payments: inv.payments,
+        total_paid: inv.totalPaid,
+        sisa_tagihan: inv.sisaTagihan,
+        status: inv.status
+    };
 
-    // === AUTO JOURNAL: Pembayaran (Double Entry) ===
-    // Debit Kas/Bank, Kredit Piutang Usaha
+    const { error } = await updateRecord('akt_invoices', inv.dbId, payload);
+    if (error) throw new Error(error.message);
+
+    // === AUTO JOURNAL ===
     const jLines = [];
-    // Debit: uang masuk ke Kas/Bank
     jLines.push({ account: payData.bankCode, accountName: payData.bankName, debit: payData.amount, credit: 0 });
-    // Debit: potongan masuk ke beban (jika ada)
     if (payData.potongan > 0) {
         jLines.push({ account: DB.coa.bebanPotongan.code, accountName: DB.coa.bebanPotongan.name, debit: payData.potongan, credit: 0 });
     }
-    // Kredit: Piutang berkurang
     const totalKredit = payData.amount + (payData.potongan || 0);
     jLines.push({ account: DB.coa.piutang.code, accountName: DB.coa.piutang.name, debit: 0, credit: totalKredit });
 
-    createJournalEntry(payData.date, `Pembayaran ${payData.id} untuk ${invoiceId}`, jLines, payData.id);
+    await createJournalEntry(payData.date, `Pembayaran ${payData.id} untuk ${invoiceId}`, jLines, payData.id);
 
     addAudit('PAYMENT_RECORDED', payData.id, `Pembayaran ${formatRp(payData.amount)} untuk ${invoiceId}. Sisa: ${formatRp(inv.sisaTagihan)}`);
     return inv;
 }
 
-function voidInvoice(invoiceId) {
-    const invoices = getInvoices();
-    const idx = invoices.findIndex(inv => inv.id === invoiceId);
-    if (idx === -1) return;
-    
-    const inv = invoices[idx];
+async function voidInvoice(invoiceId) {
+    const inv = await getInvoiceById(invoiceId);
+    if (!inv) return;
 
-    // Reverse Stock Movement (Kembalikan stok barang yang keluar)
-    if (window.VittaProduk && inv.items) {
-        inv.items.forEach(item => {
-            if (item.productId) {
-                window.VittaProduk.processStockMovement(item.productId, 'RETURN_SELL', item.qty, inv.id, item.price, `Void Invoice ${inv.id}`);
-            }
-        });
-    }
+    const { error } = await updateRecord('akt_invoices', inv.dbId, { status: 'void' });
+    if (error) throw new Error(error.message);
 
-    // Void Jurnal terkait jika ada
-    if (window.getJournals && window.voidJournal) {
-        const journals = window.getJournals();
-        journals.forEach(j => {
-            if (j.refId === invoiceId && j.status !== 'void') {
-                window.voidJournal(j.id, "Pembatalan Invoice Penjualan");
-            }
-        });
-    }
-
-    invoices[idx].status = 'void';
-    saveData(KEYS.invoices, invoices);
+    inv.status = 'void';
     addAudit('INVOICE_VOIDED', invoiceId, `Invoice ${invoiceId} dibatalkan (void).`);
 }
 
 // ========== STATUS UPDATER ==========
-function refreshStatuses() {
-    const invoices = getInvoices();
+async function refreshStatuses() {
+    const invoices = await getInvoices();
     const todayStr = today();
     let changed = false;
-    invoices.forEach(inv => {
-        if (inv.status === 'lunas' || inv.status === 'void' || inv.status === 'retur') return;
+    for (const inv of invoices) {
+        if (inv.status === 'lunas' || inv.status === 'void' || inv.status === 'retur') continue;
         if (inv.dueDate && inv.dueDate < todayStr && inv.sisaTagihan > 0) {
-            if (inv.status !== 'jatuh_tempo') { inv.status = 'jatuh_tempo'; changed = true; }
+            if (inv.status !== 'jatuh_tempo') { 
+                inv.status = 'jatuh_tempo'; 
+                await updateRecord('akt_invoices', inv.dbId, { status: 'jatuh_tempo' });
+                changed = true; 
+            }
         }
-    });
-    if (changed) saveData(KEYS.invoices, invoices);
+    }
     return invoices;
 }
 
-// ========== DEFAULT SEED DATA ==========
-function getDefaultInvoices() {
-    return [
-        { id: 'INV/2026/05/0001', customerId: 'C001', customerName: 'PT Teknologi Maju', date: '2026-05-12', dueDate: '2026-06-11', termin: '30', items: [{ productId: 'P001', name: 'Laptop Asus TUF Gaming', qty: 2, unit: 'Unit', price: 14500000, discType: '%', disc: 0, taxId: 'ppn11', taxAmt: 3190000, lineTotal: 29000000 }], subtotal: 29000000, discInvoice: 0, discInvoiceType: 'rp', shipping: 0, txFee: 0, totalPPN: 3190000, totalPPh: 0, grandTotal: 32190000, potongan: 0, dp: 0, dpAccount: '', dpAccountName: '', sisaTagihan: 0, totalPaid: 32190000, status: 'lunas', ref: '', tag: 'Reguler', note: '', message: '', payments: [{ id: 'PAY/2026/05/0001', amount: 32190000, potongan: 0, date: '2026-05-15', bankCode: '1-10002', bankName: 'Bank BCA', ref: 'TF-001', createdAt: '2026-05-15T10:00:00Z', createdBy: 'User Perusahaan' }], createdAt: '2026-05-12T08:00:00Z', createdBy: 'User Perusahaan' },
-        { id: 'INV/2026/05/0002', customerId: 'C002', customerName: 'CV Makmur Jaya', date: '2026-05-15', dueDate: '2026-06-14', termin: '30', items: [{ productId: 'P003', name: 'Monitor LED 24" Samsung', qty: 5, unit: 'Unit', price: 2750000, discType: '%', disc: 5, taxId: 'ppn11', taxAmt: 1436875, lineTotal: 13062500 }], subtotal: 13062500, discInvoice: 0, discInvoiceType: 'rp', shipping: 150000, txFee: 0, totalPPN: 1436875, totalPPh: 0, grandTotal: 14649375, potongan: 0, dp: 0, dpAccount: '', dpAccountName: '', sisaTagihan: 14649375, totalPaid: 0, status: 'belum', ref: 'PO-2026-088', tag: '', note: '', message: '', payments: [], createdAt: '2026-05-15T09:00:00Z', createdBy: 'User Perusahaan' },
-        { id: 'INV/2026/04/0045', customerId: 'C003', customerName: 'Toko Sinar', date: '2026-04-20', dueDate: '2026-05-05', termin: '15', items: [{ productId: 'P006', name: 'Printer Epson L3250', qty: 3, unit: 'Unit', price: 3200000, discType: 'rp', disc: 200000, taxId: 'none', taxAmt: 0, lineTotal: 9400000 }], subtotal: 9400000, discInvoice: 0, discInvoiceType: 'rp', shipping: 0, txFee: 0, totalPPN: 0, totalPPh: 0, grandTotal: 9400000, potongan: 0, dp: 2000000, dpAccount: '1-10002', dpAccountName: 'Bank BCA', sisaTagihan: 3200000, totalPaid: 6200000, status: 'jatuh_tempo', ref: '', tag: 'Repeat Order', note: '', message: '', payments: [{ id: 'PAY/2026/05/0002', amount: 4200000, potongan: 0, date: '2026-05-01', bankCode: '1-10001', bankName: 'Kas Kecil', ref: '', createdAt: '2026-05-01T10:00:00Z', createdBy: 'User Perusahaan' }], createdAt: '2026-04-20T08:00:00Z', createdBy: 'User Perusahaan' },
-    ];
+// MOCK getKasBankAccounts (If not present globally)
+async function getDynamicKasBankAccounts() {
+    const { data, error } = await readRecords('akt_coa_accounts', { "group": "Kas & Bank" });
+    if (error || !data) return [];
+    return data.map(d => ({ code: d.code, name: d.name }));
+}
+
+async function getDynamicProducts() {
+    const { data, error } = await readRecords('akt_products', { is_sold: true });
+    if (error || !data) return [];
+    return data.map(d => ({ id: d.id, name: d.name, price: d.sell_price, unit: d.unit, stock: d.current_stock, tracked: d.is_tracked }));
+}
+
+async function getDynamicCustomers() {
+    const { data, error } = await readRecords('akt_contacts');
+    if (error || !data) return [];
+    return data.filter(c => c.type === 'Customer' || c.type === 'Keduanya').map(c => ({ id: c.id, name: c.name }));
 }

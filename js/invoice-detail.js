@@ -1,6 +1,6 @@
 // ========== DETAIL VIEW ==========
-function openDetail(invId) {
-    const inv = getInvoiceById(invId);
+async function openDetail(invId) {
+    const inv = await getInvoiceById(invId);
     if (!inv) { alert('Invoice tidak ditemukan.'); return; }
     addAudit('INVOICE_VIEWED', invId, `Invoice ${invId} dilihat.`);
 
@@ -8,13 +8,12 @@ function openDetail(invId) {
 
     const payRows = (inv.payments||[]).map(p => `<tr class="border-b border-dark-700/50"><td class="py-2 pr-2 text-white font-medium">${p.id}</td><td class="py-2 pr-2">${formatDate(p.date)}</td><td class="py-2 pr-2">${p.bankName}</td><td class="py-2 pr-2 text-right text-emerald-400 font-medium">${formatRp(p.amount)}</td><td class="py-2 pr-2 text-right">${p.potongan>0?formatRp(p.potongan):'-'}</td><td class="py-2 pr-2 text-xs">${p.ref||'-'}</td><td class="py-2 text-center"><button onclick="printPaymentReceipt('${inv.id}','${p.id}')" class="text-blue-400 hover:text-blue-300 text-xs">🖨️ Cetak</button></td></tr>`).join('') || '<tr><td colspan="7" class="py-4 text-center text-gray-500">Belum ada pembayaran.</td></tr>';
 
-    const journals = loadData(KEYS.journals).filter(j => j.refId === invId || (inv.payments||[]).some(p => p.id === j.refId));
-    const jrnRows = journals.map(j => {
-        const lines = j.lines.map(l => `<div class="flex justify-between text-xs py-0.5 ${l.debit>0?'':'pl-6'}"><span>${l.debit>0?'':'— '}${l.accountName}</span><span>${l.debit>0?formatRp(l.debit):''} ${l.credit>0?formatRp(l.credit):''}</span></div>`).join('');
-        return `<div class="bg-dark-900/50 p-3 rounded-lg border border-dark-700"><div class="flex justify-between mb-1"><span class="text-xs font-medium text-white">${j.memo}</span><span class="text-xs text-gray-500">${formatDate(j.date)}</span></div>${lines}</div>`;
-    }).join('') || '<p class="text-gray-500 text-sm">Tidak ada jurnal.</p>';
+    const jrnRows = '<p class="text-gray-500 text-sm">Lihat Jurnal di Menu Jurnal Umum.</p>';
 
-    const logs = loadData(KEYS.auditLog).filter(l => l.refId===invId||(inv.payments||[]).some(p=>p.id===l.refId));
+    const key = 'vitta_audit_log';
+    const raw = localStorage.getItem(key);
+    const logsData = raw ? JSON.parse(raw) : [];
+    const logs = logsData.filter(l => l.refId===invId||(inv.payments||[]).some(p=>p.id===l.refId));
     const logRows = logs.slice(0,15).map(l => `<div class="flex gap-2 text-xs py-1 border-b border-dark-700/30"><span class="text-gray-500 whitespace-nowrap">${new Date(l.timestamp).toLocaleString('id-ID')}</span><span class="text-gray-300">${l.detail}</span></div>`).join('');
 
     const canPay = inv.status!=='lunas' && inv.status!=='void' && inv.sisaTagihan>0;
@@ -29,11 +28,9 @@ function openDetail(invId) {
                 ${badge(inv.status)}
             </div>
             <div class="flex flex-wrap gap-2">
-                <!-- Tombol View ke Dasbor -->
                 <button onclick="showView('list')" class="bg-dark-700 hover:bg-dark-600 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Daftar Invoice</button>
                 ${canPay?`<button onclick="openPayment('${inv.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium">💰 Terima Pembayaran</button>`:''}
-                <!-- Combo Bagikan -->
                 <div class="relative" id="shareDropdown">
                     <button onclick="toggleDropdown('shareMenu')" class="bg-dark-700 hover:bg-dark-600 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1">📤 Bagikan <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
                     <div id="shareMenu" class="hidden absolute top-full left-0 mt-1 bg-dark-700 border border-dark-600 rounded-lg shadow-xl z-20 min-w-[180px]">
@@ -41,7 +38,6 @@ function openDetail(invId) {
                         <button onclick="sendToWA('${inv.id}');closeDropdowns()" class="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-dark-600 rounded-b-lg">💬 Kirim ke WhatsApp</button>
                     </div>
                 </div>
-                <!-- Combo Print -->
                 <div class="relative" id="printDropdown">
                     <button onclick="toggleDropdown('printMenu')" class="bg-dark-700 hover:bg-dark-600 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1">🖨️ Cetak <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
                     <div id="printMenu" class="hidden absolute top-full left-0 mt-1 bg-dark-700 border border-dark-600 rounded-lg shadow-xl z-20 min-w-[200px]">
@@ -49,19 +45,16 @@ function openDetail(invId) {
                         <button onclick="printSuratJalan('${inv.id}');closeDropdowns()" class="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-dark-600 rounded-b-lg">🚚 Surat Jalan (Print/PDF)</button>
                     </div>
                 </div>
-                <!-- Combo Tindakan -->
                 ${canAction?`<div class="relative" id="actionDropdown">
                     <button onclick="toggleDropdown('actionMenu')" class="bg-dark-700 hover:bg-dark-600 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1">⚙️ Tindakan <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
                     <div id="actionMenu" class="hidden absolute top-full right-0 mt-1 bg-dark-700 border border-dark-600 rounded-lg shadow-xl z-20 min-w-[160px]">
                         <button onclick="returInvoice('${inv.id}');closeDropdowns()" class="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-dark-600 rounded-t-lg">🔄 Retur</button>
-                        <button onclick="voidInvoice('${inv.id}');openDetail('${inv.id}');closeDropdowns()" class="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-dark-600">🚫 Void</button>
-                        <button onclick="alert('Fitur ubah akan tersedia segera.');closeDropdowns()" class="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-dark-600">✏️ Ubah</button>
+                        <button onclick="voidInvoice('${inv.id}');closeDropdowns()" class="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-dark-600">🚫 Void</button>
                         <button onclick="deleteInvoice('${inv.id}');closeDropdowns()" class="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-dark-600 rounded-b-lg">🗑️ Hapus</button>
                     </div>
                 </div>`:''}
             </div>
         </div>
-
         <!-- Info -->
         <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm border-b border-dark-700 bg-dark-900/30">
             <div><span class="text-gray-500 text-xs block">Tanggal</span><span class="text-white">${formatDate(inv.date)}</span></div>
@@ -69,13 +62,11 @@ function openDetail(invId) {
             <div><span class="text-gray-500 text-xs block">Termin</span><span class="text-white">Net ${inv.termin} Hari</span></div>
             <div><span class="text-gray-500 text-xs block">Tag</span><span class="text-white">${inv.tag||'-'}</span></div>
         </div>
-
         <!-- Items -->
         <div class="p-5 border-b border-dark-700">
             <h3 class="text-sm font-semibold text-gray-300 mb-2">Detail Item</h3>
             <div class="overflow-x-auto"><table class="w-full text-sm text-gray-300"><thead class="text-xs text-gray-400 uppercase border-b border-dark-700"><tr><th class="py-1 pr-2 w-8">#</th><th class="py-1 pr-2">Produk</th><th class="py-1 pr-2 text-center">Qty</th><th class="py-1 pr-2 text-center">Satuan</th><th class="py-1 pr-2 text-right">Harga</th><th class="py-1 pr-2 text-right">Diskon</th><th class="py-1 text-right">Jumlah</th></tr></thead><tbody>${itemRows}</tbody></table></div>
         </div>
-
         <!-- Totals -->
         <div class="p-5 border-b border-dark-700 flex justify-end">
             <div class="w-full md:w-72 space-y-1 text-sm">
@@ -88,13 +79,11 @@ function openDetail(invId) {
                 <div class="flex justify-between bg-blue-500/10 p-2 rounded border border-blue-500/20 mt-1"><span class="text-blue-300 font-medium">Sisa Tagihan</span><span class="text-blue-400 font-bold">${formatRp(inv.sisaTagihan)}</span></div>
             </div>
         </div>
-
         <!-- Payments -->
         <div class="p-5 border-b border-dark-700">
             <h3 class="text-sm font-semibold text-gray-300 mb-2">Riwayat Pembayaran</h3>
             <div class="overflow-x-auto"><table class="w-full text-sm text-gray-300"><thead class="text-xs text-gray-400 uppercase border-b border-dark-700"><tr><th class="py-1 pr-2">No</th><th class="py-1 pr-2">Tanggal</th><th class="py-1 pr-2">Akun</th><th class="py-1 pr-2 text-right">Jumlah</th><th class="py-1 pr-2 text-right">Potongan</th><th class="py-1 pr-2">Ref</th><th class="py-1 text-center">Cetak</th></tr></thead><tbody>${payRows}</tbody></table></div>
         </div>
-
         <!-- Journals -->
         <div class="p-5 border-b border-dark-700"><h3 class="text-sm font-semibold text-gray-300 mb-2">Jurnal Otomatis</h3><div class="space-y-2">${jrnRows}</div></div>
         <!-- Audit -->
@@ -117,15 +106,12 @@ document.addEventListener('click', function(e) {
 });
 
 // ========== PAYMENT FORM ==========
-function openPayment(invId) {
+async function openPayment(invId) {
     window._payInvId = invId;
-    const inv = getInvoiceById(invId);
+    const inv = await getInvoiceById(invId);
     if (!inv) return;
     
-    let bankOptsList = DB.bankAccounts;
-    if (typeof getKasBankAccounts === 'function') {
-        bankOptsList = getKasBankAccounts();
-    }
+    let bankOptsList = await getDynamicKasBankAccounts();
     const bankOpts = bankOptsList.map(b => `<option value="${b.code}" data-name="${b.name}">${b.name}</option>`).join('');
 
     document.getElementById('payContent').innerHTML = `
@@ -166,7 +152,7 @@ function calcPayTotal() {
     document.getElementById('lblPayTotal').innerText = formatRp(a+p);
 }
 
-function doRecordPayment(invId) {
+async function doRecordPayment(invId) {
     try {
         const bankSel = document.getElementById('pBank');
         const amt = parseFloat(document.getElementById('pAmount').value)||0;
@@ -181,21 +167,23 @@ function doRecordPayment(invId) {
             ref: document.getElementById('pRef').value,
         };
 
-        const inv = recordPayment(invId, payData);
+        const btn = document.querySelector('button[onclick="doRecordPayment(\''+invId+'\')"]');
+        if(btn) { btn.disabled = true; btn.innerHTML = 'Memproses...'; }
+
+        const inv = await recordPayment(invId, payData);
         const lastPay = inv.payments[inv.payments.length - 1];
 
-        // Tampilkan bukti bayar, bukan langsung ke detail
-        showPaymentReceipt(invId, lastPay);
+        showPaymentReceipt(inv, lastPay);
     } catch (e) {
         alert('⚠️ ' + e.message);
+        const btn = document.querySelector('button[disabled]');
+        if(btn) { btn.disabled = false; btn.innerHTML = '✅ Simpan Pembayaran'; }
     }
 }
 
 // ========== BUKTI BAYAR VIEW ==========
-function showPaymentReceipt(invId, pay) {
-    const inv = getInvoiceById(invId);
-    if (!inv) return;
-
+function showPaymentReceipt(inv, pay) {
+    const invId = inv.id;
     document.getElementById('payContent').innerHTML = `
     <div class="bg-dark-800 border border-dark-700 rounded-2xl shadow-xl overflow-hidden">
         <div class="p-5 border-b border-dark-700 bg-emerald-500/5">
@@ -223,5 +211,4 @@ function showPaymentReceipt(invId, pay) {
             <button onclick="openDetail('${invId}')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Lihat Detail Invoice</button>
         </div>
     </div>`;
-    // Stay on pay view to show receipt
 }

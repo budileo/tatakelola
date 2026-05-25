@@ -222,4 +222,47 @@ CREATE POLICY "Allow CRUD own assets" ON public.akt_assets
 
 CREATE INDEX IF NOT EXISTS idx_akt_assets_no ON public.akt_assets(asset_no);
 
+-- ============================================================
+-- 9. Tabel Invoice Penjualan (akt_invoices)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.akt_invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_id UUID NOT NULL,
+    department_id UUID REFERENCES public.akt_departments(id) ON DELETE CASCADE,
+    invoice_no VARCHAR(50) NOT NULL,
+    customer_id UUID REFERENCES public.akt_contacts(id),
+    customer_name VARCHAR(255),
+    date DATE NOT NULL,
+    due_date DATE,
+    termin VARCHAR(20),
+    ref VARCHAR(100),
+    tag VARCHAR(255),
+    items JSONB NOT NULL,
+    subtotal NUMERIC(15,2) DEFAULT 0.00,
+    disc_invoice NUMERIC(15,2) DEFAULT 0.00,
+    disc_invoice_type VARCHAR(10) DEFAULT 'rp',
+    shipping NUMERIC(15,2) DEFAULT 0.00,
+    tx_fee NUMERIC(15,2) DEFAULT 0.00,
+    total_ppn NUMERIC(15,2) DEFAULT 0.00,
+    total_pph NUMERIC(15,2) DEFAULT 0.00,
+    grand_total NUMERIC(15,2) DEFAULT 0.00,
+    potongan NUMERIC(15,2) DEFAULT 0.00,
+    dp NUMERIC(15,2) DEFAULT 0.00,
+    dp_account VARCHAR(50),
+    dp_account_name VARCHAR(255),
+    sisa_tagihan NUMERIC(15,2) DEFAULT 0.00,
+    total_paid NUMERIC(15,2) DEFAULT 0.00,
+    status VARCHAR(20) DEFAULT 'belum',
+    note TEXT,
+    message TEXT,
+    payments JSONB DEFAULT '[]'::jsonb
+);
 
+ALTER TABLE public.akt_invoices ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow CRUD own invoices" ON public.akt_invoices
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_akt_invoices_no ON public.akt_invoices(invoice_no);
+CREATE INDEX IF NOT EXISTS idx_akt_invoices_date ON public.akt_invoices(date);

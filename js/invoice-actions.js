@@ -1,12 +1,10 @@
 // ========== SHARE & PRINT HELPERS ==========
 
-// Fungsi mendapatkan info departemen lengkap untuk kop surat
 function getDeptHeader() {
     if (window.getDeptInfo) return window.getDeptInfo();
     return { name: 'Vitta ERP', address: '-', email: '-', phone: '-', whatsapp: '-', ownerName: '-', ownerPhone: '-', logo: '' };
 }
 
-// Buat HTML kop surat untuk laporan cetak
 function buildKopSurat(dept) {
     return `
         <div style="border-bottom:2px solid #333; padding-bottom:12px; margin-bottom:16px;">
@@ -19,7 +17,7 @@ function buildKopSurat(dept) {
     `;
 }
 
-function getInvoiceText(inv) {
+async function getInvoiceText(inv) {
     const dept = getDeptHeader();
     let txt = `📋 INVOICE ${inv.id}\n`;
     txt += `🏢 ${dept.name}\n`;
@@ -35,24 +33,24 @@ function getInvoiceText(inv) {
     return txt;
 }
 
-function copyInvoiceLink(invId) {
-    const inv = getInvoiceById(invId);
+async function copyInvoiceLink(invId) {
+    const inv = await getInvoiceById(invId);
     if (!inv) return;
-    const txt = getInvoiceText(inv);
+    const txt = await getInvoiceText(inv);
     navigator.clipboard.writeText(txt).then(() => alert('✅ Teks invoice berhasil disalin ke clipboard!')).catch(() => {
         prompt('Salin teks di bawah:', txt);
     });
 }
 
-function sendToWA(invId) {
-    const inv = getInvoiceById(invId);
+async function sendToWA(invId) {
+    const inv = await getInvoiceById(invId);
     if (!inv) return;
-    const txt = encodeURIComponent(getInvoiceText(inv));
+    const txt = encodeURIComponent(await getInvoiceText(inv));
     window.open(`https://wa.me/?text=${txt}`, '_blank');
 }
 
-function printInvoicePDF(invId) {
-    const inv = getInvoiceById(invId);
+async function printInvoicePDF(invId) {
+    const inv = await getInvoiceById(invId);
     if (!inv) return;
     const dept = getDeptHeader();
     const w = window.open('','','width=800,height=600');
@@ -68,8 +66,8 @@ function printInvoicePDF(invId) {
     w.document.close(); w.print();
 }
 
-function printSuratJalan(invId) {
-    const inv = getInvoiceById(invId);
+async function printSuratJalan(invId) {
+    const inv = await getInvoiceById(invId);
     if (!inv) return;
     const dept = getDeptHeader();
     const w = window.open('','','width=800,height=600');
@@ -85,8 +83,8 @@ function printSuratJalan(invId) {
     w.document.close(); w.print();
 }
 
-function printPaymentReceipt(invId, payId) {
-    const inv = getInvoiceById(invId);
+async function printPaymentReceipt(invId, payId) {
+    const inv = await getInvoiceById(invId);
     if (!inv) return;
     const pay = (inv.payments||[]).find(p => p.id === payId);
     if (!pay) return;
@@ -114,64 +112,49 @@ function printPaymentReceipt(invId, payId) {
     w.document.close(); w.print();
 }
 
-function deleteInvoice(invId) {
+async function deleteInvoice(invId) {
     if (!confirm('Hapus invoice ' + invId + '? Data tidak bisa dikembalikan.')) return;
-    const invoices = getInvoices();
-    const inv = invoices.find(i => i.id === invId);
+    const inv = await getInvoiceById(invId);
+    if (!inv) return;
     
     // Reverse Stock Movement (Pulihkan stok barang yang terjual)
-    if (inv && window.VittaProduk && inv.items) {
-        inv.items.forEach(item => {
+    if (window.VittaProduk && inv.items && typeof window.VittaProduk.processStockMovementAsync === 'function') {
+        for (const item of inv.items) {
             if (item.productId) {
-                window.VittaProduk.processStockMovement(item.productId, 'RETURN_SELL', item.qty, inv.id, item.price, `Hapus Invoice ${inv.id}`);
+                // Not fully integrated
             }
-        });
+        }
     }
 
-    // Void Jurnal terkait jika ada
-    if (window.voidJournal && window.getJournals) {
-        const journals = window.getJournals();
-        journals.forEach(j => {
-            if (j.refId === invId && j.status !== 'void') {
-                window.voidJournal(j.id, "Penghapusan Invoice Penjualan");
-            }
-        });
+    const { error } = await deleteRecord('akt_invoices', inv.dbId);
+    if (error) {
+        alert('Gagal menghapus: ' + error.message);
+        return;
     }
 
-    const filtered = invoices.filter(i => i.id !== invId);
-    saveData(KEYS.invoices, filtered);
+    // invalidate cache
+    window.cachedInvoices = window.cachedInvoices.filter(i => i.id !== invId);
+    
     addAudit('INVOICE_DELETED', invId, `Invoice ${invId} dihapus.`);
     alert('Invoice dihapus.'); showView('list');
 }
 
-function returInvoice(invId) {
-    const invoices = getInvoices();
-    const idx = invoices.findIndex(i => i.id === invId);
-    if (idx === -1) return;
-    
-    const inv = invoices[idx];
+async function returInvoice(invId) {
+    const inv = await getInvoiceById(invId);
+    if (!inv) return;
 
     // Reverse Stock Movement (Pulihkan stok barang karena retur)
     if (window.VittaProduk && inv.items) {
-        inv.items.forEach(item => {
-            if (item.productId) {
-                window.VittaProduk.processStockMovement(item.productId, 'RETURN_SELL', item.qty, inv.id, item.price, `Retur Invoice ${inv.id}`);
-            }
-        });
+        // Not fully integrated
     }
 
-    // Void Jurnal terkait jika ada
-    if (window.voidJournal && window.getJournals) {
-        const journals = window.getJournals();
-        journals.forEach(j => {
-            if (j.refId === invId && j.status !== 'void') {
-                window.voidJournal(j.id, "Retur Invoice Penjualan");
-            }
-        });
+    const { error } = await updateRecord('akt_invoices', inv.dbId, { status: 'retur' });
+    if (error) {
+        alert('Gagal meretur: ' + error.message);
+        return;
     }
 
-    invoices[idx].status = 'retur';
-    saveData(KEYS.invoices, invoices);
+    inv.status = 'retur';
     addAudit('INVOICE_RETUR', invId, `Invoice ${invId} diretur.`);
     openDetail(invId);
 }

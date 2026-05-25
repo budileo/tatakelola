@@ -1,5 +1,5 @@
 // ========== VIEW NAVIGATION ==========
-function showView(name) {
+async function showView(name) {
     const viewMap = { list: 'viewList', form: 'viewForm', detail: 'viewDetail', pay: 'viewPay' };
     ['viewList','viewForm','viewDetail','viewPay'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
@@ -9,8 +9,8 @@ function showView(name) {
         document.getElementById(targetId).classList.remove('hidden');
         document.getElementById(targetId).scrollTop = 0;
     }
-    if (name === 'list') renderList();
-    if (name === 'form') initForm();
+    if (name === 'list') await renderList();
+    if (name === 'form') await initForm();
     // Scroll main area to top
     const main = document.querySelector('main');
     if (main) main.scrollTop = 0;
@@ -31,8 +31,8 @@ function badge(status) {
 }
 
 // ========== LIST VIEW ==========
-function renderList() {
-    let invoices = refreshStatuses();
+async function renderList() {
+    let invoices = await refreshStatuses();
     const from = document.getElementById('fDateFrom').value;
     const to = document.getElementById('fDateTo').value;
     const status = document.getElementById('fStatus').value;
@@ -60,35 +60,29 @@ function renderList() {
 }
 
 // ========== INIT FORM ==========
-function initForm() {
+window._cachedProducts = [];
+
+async function initForm() {
     const cs = document.getElementById('fCustomer');
     
-    // --- Sinkronisasi data kontak dari Master Kontak ---
-    let customersList = DB.customers; // default
-    const scopedKey = window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts';
-    const localContacts = localStorage.getItem(scopedKey);
-    if(localContacts) {
-        try {
-            const parsed = JSON.parse(localContacts);
-            const valid = parsed.filter(c => c.tipe === 'Customer' || c.tipe === 'Keduanya');
-            if(valid.length > 0) {
-                customersList = valid.map(c => ({ id: c.id, name: (c.sapaan ? c.sapaan + ' ' : '') + c.nama }));
-            }
-        } catch(e) {}
-    }
+    // --- Sinkronisasi data kontak dinamis dari Supabase ---
+    let customersList = await getDynamicCustomers();
 
     cs.innerHTML = '<option value="">-- Pilih Pelanggan --</option>' + customersList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    
     // Multi-tag checkboxes
     const tagContainer = document.getElementById('fTagCheckboxes');
     if (tagContainer) {
         tagContainer.innerHTML = DB.tags.map(t => `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-dark-700/50 px-2 py-1 rounded"><input type="checkbox" value="${t}" class="tagCheck accent-blue-500"><span class="text-sm text-gray-300">${t}</span></label>`).join('');
     }
+    
+    // --- Sinkronisasi Bank Akun dinamis dari Supabase ---
     const da = document.getElementById('fDPAccount');
-    let bankOptsList = DB.bankAccounts;
-    if (typeof getKasBankAccounts === 'function') {
-        bankOptsList = getKasBankAccounts();
-    }
+    let bankOptsList = await getDynamicKasBankAccounts();
     da.innerHTML = bankOptsList.map(b => `<option value="${b.code}">${b.name}</option>`).join('');
+
+    // Pre-fetch products
+    window._cachedProducts = await getDynamicProducts();
 
     document.getElementById('fInvDate').value = today();
     document.getElementById('fInvNo').value = 'AUTO';
@@ -120,13 +114,8 @@ function calcDueDate() {
 // ========== ITEM ROWS ==========
 function addItemRow() {
     const tbody = document.getElementById('itemsBody');
-    let prodOpts = '';
-    if (window.VittaProduk) {
-        const activeProds = window.VittaProduk.getActiveProducts().filter(p => p.is_sold);
-        prodOpts = activeProds.map(p => `<option value="${p.id}" data-price="${p.sell_price}" data-unit="${p.unit}" data-stock="${p.is_tracked ? p.current_stock : ''}" data-tracked="${p.is_tracked}">${p.name}</option>`).join('');
-    } else {
-        prodOpts = DB.products.map(p => `<option value="${p.id}" data-price="${p.price}" data-unit="${p.unit}" data-stock="" data-tracked="false">${p.name}</option>`).join('');
-    }
+    let prodOpts = window._cachedProducts.map(p => `<option value="${p.id}" data-price="${p.price}" data-unit="${p.unit}" data-stock="${p.tracked ? p.stock : ''}" data-tracked="${p.tracked}">${p.name}</option>`).join('');
+    
     const taxOpts = DB.taxOptions.map(t => `<option value="${t.id}" data-rate="${t.rate}">${t.label}</option>`).join('');
     const tr = document.createElement('tr');
     tr.className = 'item-row';
@@ -227,7 +216,7 @@ function calcTotals() {
 }
 
 // ========== SAVE INVOICE ==========
-function doSaveInvoice() {
+async function doSaveInvoice() {
     try {
         const custSel = document.getElementById('fCustomer');
         const custId = custSel.value;
@@ -255,7 +244,10 @@ function doSaveInvoice() {
         const c = window._calcData || {};
         const dpAccSel = document.getElementById('fDPAccount');
 
-        const inv = saveInvoice({
+        const btn = document.querySelector('button[onclick="doSaveInvoice()"]');
+        if(btn) { btn.disabled = true; btn.innerHTML = "Menyimpan..."; }
+
+        const inv = await saveInvoice({
             customerId: custId, customerName: custName,
             date: document.getElementById('fInvDate').value,
             dueDate: document.getElementById('fDueDate').value,
@@ -280,15 +272,16 @@ function doSaveInvoice() {
         openDetail(inv.id);
     } catch (e) {
         alert('⚠️ ' + e.message);
+    } finally {
+        const btn = document.querySelector('button[disabled]');
+        if(btn) { btn.disabled = false; btn.innerHTML = `<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Simpan Invoice`; }
     }
 }
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
-    // Clear data lama dari versi sebelumnya (v1)
-    if (localStorage.getItem('vitta_invoices') && !localStorage.getItem('vitta_invoices_v2_migrated')) {
-        localStorage.removeItem('vitta_invoices');
-        localStorage.setItem('vitta_invoices_v2_migrated', '1');
-    }
-    renderList();
+    // Tunggu sesaat hingga auth & supabase siap
+    setTimeout(() => {
+        renderList();
+    }, 500);
 });
