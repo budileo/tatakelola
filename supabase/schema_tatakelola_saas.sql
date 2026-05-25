@@ -280,3 +280,46 @@ ADD COLUMN IF NOT EXISTS pajak VARCHAR(50) DEFAULT 'Non PPN',
 ADD COLUMN IF NOT EXISTS mata_uang VARCHAR(10) DEFAULT 'IDR',
 ADD COLUMN IF NOT EXISTS ar_code VARCHAR(100) DEFAULT '1102 - Piutang Usaha IDR',
 ADD COLUMN IF NOT EXISTS ap_code VARCHAR(100) DEFAULT '2101 - Hutang Usaha IDR';
+-- ============================================================
+-- 11. Tabel Kategori Produk (akt_categories)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.akt_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_id UUID NOT NULL,
+    department_id UUID REFERENCES public.akt_departments(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    CONSTRAINT unique_user_category_name UNIQUE (user_id, department_id, name)
+);
+
+ALTER TABLE public.akt_categories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow CRUD own categories" ON public.akt_categories
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_akt_categories_name ON public.akt_categories(name);
+
+-- ============================================================
+-- 12. Tabel Manajemen Tag (akt_tags)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.akt_tags (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_id UUID NOT NULL,
+    department_id UUID REFERENCES public.akt_departments(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50) DEFAULT 'Global', -- Penjualan, Pembelian, Biaya, Global
+    color VARCHAR(50) DEFAULT '#3b82f6', -- Warna default (blue)
+    is_active BOOLEAN DEFAULT true,
+    CONSTRAINT unique_user_tag_name UNIQUE (user_id, department_id, name)
+);
+
+ALTER TABLE public.akt_tags ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow CRUD own tags" ON public.akt_tags
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_akt_tags_type ON public.akt_tags(type);
+

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan - Akuntansi Vitta ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        dark: { 900: '#111827', 800: '#1f2937', 700: '#374151', 600: '#4b5563' },
+                        primary: '#3b82f6',
+                        accent: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="../css/style.css">
+    <!-- SweetAlert2 for notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-dark-900 text-gray-100 font-sans min-h-screen flex">
+    
+    <!-- Sidebar Placeholder -->
+    <div id="sidebar-container" class="shrink-0"></div>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-y-auto bg-dark-900 relative">
+        <!-- Top Header -->
+        <header class="bg-dark-800 border-b border-dark-700 p-4 md:p-6 flex justify-between items-center sticky top-0 z-10">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="mr-4 text-gray-400 hover:text-white lg:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">Pengaturan Master</h1>
+                    <p class="text-xs md:text-sm text-gray-400 hidden md:block">Kelola Tag dan Kategori Produk</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <button id="btnTambahData" class="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-2 rounded-lg text-white transition-colors flex items-center font-medium shadow-lg shadow-blue-500/20">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <span id="txtBtnTambahData">Tambah Tag</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="p-6 max-w-7xl mx-auto space-y-6">
+            
+            <!-- Custom Tabs -->
+            <div class="border-b border-dark-700">
+                <ul class="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-400">
+                    <li class="mr-2">
+                        <button class="tab-btn inline-flex p-4 border-b-2 rounded-t-lg border-blue-500 text-blue-500 group" data-target="tab-tags">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                            Manajemen Tag
+                        </button>
+                    </li>
+                    <li class="mr-2">
+                        <button class="tab-btn inline-flex p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-300 group" data-target="tab-categories">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            Kategori Produk
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tab Content: Manajemen Tag -->
+            <div id="tab-tags" class="tab-content block">
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-6">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-400">
+                            <thead class="text-xs uppercase bg-dark-700/50 text-gray-300">
+                                <tr>
+                                    <th class="px-4 py-3 rounded-l-lg">Nama Tag</th>
+                                    <th class="px-4 py-3">Tipe</th>
+                                    <th class="px-4 py-3">Warna</th>
+                                    <th class="px-4 py-3 text-center">Status</th>
+                                    <th class="px-4 py-3 text-center rounded-r-lg">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tagsTableBody" class="divide-y divide-dark-700">
+                                <!-- Data Tags -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Kategori Produk -->
+            <div id="tab-categories" class="tab-content hidden">
+                <div class="bg-dark-800 border border-dark-700 rounded-2xl p-6">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-400">
+                            <thead class="text-xs uppercase bg-dark-700/50 text-gray-300">
+                                <tr>
+                                    <th class="px-4 py-3 rounded-l-lg w-1/4">Nama Kategori</th>
+                                    <th class="px-4 py-3 w-1/2">Deskripsi</th>
+                                    <th class="px-4 py-3 text-center">Status</th>
+                                    <th class="px-4 py-3 text-center rounded-r-lg">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTableBody" class="divide-y divide-dark-700">
+                                <!-- Data Categories -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modal Form Tag -->
+    <div id="modalTag" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-dark-800 rounded-2xl w-full max-w-md shadow-2xl border border-dark-700 overflow-hidden transform scale-100 transition-transform">
+            <div class="flex justify-between items-center p-6 border-b border-dark-700 bg-dark-800/50">
+                <h3 class="text-lg font-bold text-white" id="modalTagTitle">Tambah Tag Baru</h3>
+                <button onclick="closeModalTag()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="formTag" onsubmit="saveTag(event)" class="p-6 space-y-4">
+                <input type="hidden" id="tagId">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-300">Nama Tag <span class="text-rose-500">*</span></label>
+                    <input type="text" id="tagName" required class="bg-dark-900 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Misal: VIP, Promo, dll">
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-300">Tipe Penggunaan <span class="text-rose-500">*</span></label>
+                    <select id="tagType" required class="bg-dark-900 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <option value="Global">Global (Semua Modul)</option>
+                        <option value="Penjualan">Penjualan</option>
+                        <option value="Pembelian">Pembelian</option>
+                        <option value="Biaya">Biaya</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-300">Warna Tag</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="color" id="tagColor" value="#3b82f6" class="h-10 w-14 rounded cursor-pointer bg-dark-900 border border-dark-600">
+                        <span class="text-xs text-gray-500">Pilih warna untuk identifikasi visual.</span>
+                    </div>
+                </div>
+                <div class="flex items-center mb-4">
+                    <input id="tagIsActive" type="checkbox" checked class="w-4 h-4 text-blue-600 bg-dark-700 border-dark-600 rounded focus:ring-blue-500">
+                    <label for="tagIsActive" class="ml-2 text-sm font-medium text-gray-300">Tag Aktif</label>
+                </div>
+                <div class="flex justify-end pt-4 space-x-3 border-t border-dark-700">
+                    <button type="button" onclick="closeModalTag()" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white text-sm font-medium rounded-lg transition-colors">Batal</button>
+                    <button type="submit" id="btnSaveTag" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-blue-500/20">Simpan Tag</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Form Kategori -->
+    <div id="modalCategory" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-dark-800 rounded-2xl w-full max-w-md shadow-2xl border border-dark-700 overflow-hidden transform scale-100 transition-transform">
+            <div class="flex justify-between items-center p-6 border-b border-dark-700 bg-dark-800/50">
+                <h3 class="text-lg font-bold text-white" id="modalCategoryTitle">Tambah Kategori Baru</h3>
+                <button onclick="closeModalCategory()" class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="formCategory" onsubmit="saveCategory(event)" class="p-6 space-y-4">
+                <input type="hidden" id="categoryId">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-300">Nama Kategori <span class="text-rose-500">*</span></label>
+                    <input type="text" id="categoryName" required class="bg-dark-900 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Misal: Elektronik, Minuman">
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-300">Deskripsi (Opsional)</label>
+                    <textarea id="categoryDesc" rows="3" class="bg-dark-900 border border-dark-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Tambahkan deskripsi singkat..."></textarea>
+                </div>
+                <div class="flex items-center mb-4">
+                    <input id="categoryIsActive" type="checkbox" checked class="w-4 h-4 text-blue-600 bg-dark-700 border-dark-600 rounded focus:ring-blue-500">
+                    <label for="categoryIsActive" class="ml-2 text-sm font-medium text-gray-300">Kategori Aktif</label>
+                </div>
+                <div class="flex justify-end pt-4 space-x-3 border-t border-dark-700">
+                    <button type="button" onclick="closeModalCategory()" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white text-sm font-medium rounded-lg transition-colors">Batal</button>
+                    <button type="submit" id="btnSaveCategory" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-blue-500/20">Simpan Kategori</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/theme.js"></script>
+    
+    <script>
+        let currentTab = 'tab-tags';
+        let tagsData = [];
+        let categoriesData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Tab switching logic
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.target;
+                    currentTab = target;
+                    
+                    // Update Button Text
+                    document.getElementById('txtBtnTambahData').innerText = target === 'tab-tags' ? 'Tambah Tag' : 'Tambah Kategori';
+
+                    tabBtns.forEach(b => {
+                        b.classList.remove('border-blue-500', 'text-blue-500');
+                        b.classList.add('border-transparent', 'hover:text-gray-300');
+                    });
+                    btn.classList.remove('border-transparent', 'hover:text-gray-300');
+                    btn.classList.add('border-blue-500', 'text-blue-500');
+
+                    tabContents.forEach(c => {
+                        c.classList.add('hidden');
+                        c.classList.remove('block');
+                    });
+                    document.getElementById(target).classList.remove('hidden');
+                    document.getElementById(target).classList.add('block');
+                });
+            });
+
+            // Master Tambah Button Logic
+            document.getElementById('btnTambahData').addEventListener('click', () => {
+                if (currentTab === 'tab-tags') {
+                    openModalTag();
+                } else {
+                    openModalCategory();
+                }
+            });
+
+            // Make reload function available for auth.js
+            window.renderTable = () => {
+                loadTags();
+                loadCategories();
+            };
+        });
+
+        // ----------------------------------------------------
+        // LOGIKA MANAJEMEN TAG (akt_tags)
+        // ----------------------------------------------------
+        async function loadTags() {
+            const { data, error } = await readRecords('akt_tags', {}, { order: { column: 'name', ascending: true } });
+            if (error) {
+                console.error("Gagal load tags:", error);
+                return;
+            }
+            tagsData = data || [];
+            renderTags();
+        }
+
+        function renderTags() {
+            const tbody = document.getElementById('tagsTableBody');
+            if (tagsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">Belum ada data tag.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = tagsData.map(tag => {
+                const statusBadge = tag.is_active 
+                    ? `<span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs border border-emerald-500/20">Aktif</span>`
+                    : `<span class="bg-gray-500/10 text-gray-400 px-2 py-1 rounded text-xs border border-gray-600/30">Nonaktif</span>`;
+                
+                return `
+                    <tr class="hover:bg-dark-700/30 transition-colors">
+                        <td class="px-4 py-3 font-medium text-white flex items-center">
+                            <span class="w-3 h-3 rounded-full mr-3 shadow-sm" style="background-color: ${tag.color || '#3b82f6'}"></span>
+                            ${tag.name}
+                        </td>
+                        <td class="px-4 py-3 text-gray-300 text-sm">${tag.type}</td>
+                        <td class="px-4 py-3 text-gray-400 text-xs font-mono">${tag.color}</td>
+                        <td class="px-4 py-3 text-center">${statusBadge}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openModalTag('${tag.id}')" class="text-blue-400 hover:text-blue-300 text-xs mr-2 transition-colors">Edit</button>
+                            <button onclick="deleteTag('${tag.id}')" class="text-rose-400 hover:text-rose-300 text-xs transition-colors">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openModalTag(id = null) {
+            document.getElementById('formTag').reset();
+            const title = document.getElementById('modalTagTitle');
+            const btnSave = document.getElementById('btnSaveTag');
+            
+            if (id) {
+                const tag = tagsData.find(t => t.id === id);
+                if (tag) {
+                    document.getElementById('tagId').value = tag.id;
+                    document.getElementById('tagName').value = tag.name;
+                    document.getElementById('tagType').value = tag.type;
+                    document.getElementById('tagColor').value = tag.color;
+                    document.getElementById('tagIsActive').checked = tag.is_active;
+                    title.innerText = 'Edit Tag';
+                    btnSave.innerText = 'Simpan Perubahan';
+                }
+            } else {
+                document.getElementById('tagId').value = '';
+                document.getElementById('tagColor').value = '#3b82f6';
+                document.getElementById('tagIsActive').checked = true;
+                title.innerText = 'Tambah Tag Baru';
+                btnSave.innerText = 'Simpan Tag';
+            }
+            
+            document.getElementById('modalTag').classList.remove('hidden');
+        }
+
+        function closeModalTag() {
+            document.getElementById('modalTag').classList.add('hidden');
+        }
+
+        async function saveTag(e) {
+            e.preventDefault();
+            const id = document.getElementById('tagId').value;
+            const data = {
+                name: document.getElementById('tagName').value.trim(),
+                type: document.getElementById('tagType').value,
+                color: document.getElementById('tagColor').value,
+                is_active: document.getElementById('tagIsActive').checked
+            };
+
+            const btnSave = document.getElementById('btnSaveTag');
+            const originalText = btnSave.innerText;
+            btnSave.innerText = 'Menyimpan...';
+            btnSave.disabled = true;
+
+            let res;
+            if (id) {
+                res = await updateRecord('akt_tags', id, data);
+            } else {
+                res = await insertRecord('akt_tags', data);
+            }
+
+            btnSave.innerText = originalText;
+            btnSave.disabled = false;
+
+            if (res && res.error) {
+                Swal.fire({icon: 'error', title: 'Gagal', text: res.error.message, background: '#1f2937', color: '#fff'});
+            } else {
+                Swal.fire({icon: 'success', title: 'Berhasil', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
+                closeModalTag();
+                loadTags();
+            }
+        }
+
+        async function deleteTag(id) {
+            Swal.fire({
+                title: 'Hapus Tag?',
+                text: "Tag yang sudah dihapus tidak dapat dikembalikan.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#4b5563',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
+                background: '#1f2937',
+                color: '#fff'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const res = await deleteRecord('akt_tags', id);
+                    if (res && res.error) {
+                        Swal.fire({icon: 'error', title: 'Gagal', text: res.error.message, background: '#1f2937', color: '#fff'});
+                    } else {
+                        Swal.fire({icon: 'success', title: 'Terhapus', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
+                        loadTags();
+                    }
+                }
+            });
+        }
+
+
+        // ----------------------------------------------------
+        // LOGIKA MANAJEMEN KATEGORI PRODUK (akt_categories)
+        // ----------------------------------------------------
+        async function loadCategories() {
+            const { data, error } = await readRecords('akt_categories', {}, { order: { column: 'name', ascending: true } });
+            if (error) {
+                console.error("Gagal load categories:", error);
+                return;
+            }
+            categoriesData = data || [];
+            renderCategories();
+        }
+
+        function renderCategories() {
+            const tbody = document.getElementById('categoriesTableBody');
+            if (categoriesData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">Belum ada data kategori produk.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = categoriesData.map(cat => {
+                const statusBadge = cat.is_active 
+                    ? `<span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs border border-emerald-500/20">Aktif</span>`
+                    : `<span class="bg-gray-500/10 text-gray-400 px-2 py-1 rounded text-xs border border-gray-600/30">Nonaktif</span>`;
+                
+                return `
+                    <tr class="hover:bg-dark-700/30 transition-colors">
+                        <td class="px-4 py-3 font-medium text-white text-sm">${cat.name}</td>
+                        <td class="px-4 py-3 text-gray-400 text-sm truncate max-w-[200px]">${cat.description || '-'}</td>
+                        <td class="px-4 py-3 text-center">${statusBadge}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openModalCategory('${cat.id}')" class="text-blue-400 hover:text-blue-300 text-xs mr-2 transition-colors">Edit</button>
+                            <button onclick="deleteCategory('${cat.id}')" class="text-rose-400 hover:text-rose-300 text-xs transition-colors">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openModalCategory(id = null) {
+            document.getElementById('formCategory').reset();
+            const title = document.getElementById('modalCategoryTitle');
+            const btnSave = document.getElementById('btnSaveCategory');
+            
+            if (id) {
+                const cat = categoriesData.find(c => c.id === id);
+                if (cat) {
+                    document.getElementById('categoryId').value = cat.id;
+                    document.getElementById('categoryName').value = cat.name;
+                    document.getElementById('categoryDesc').value = cat.description || '';
+                    document.getElementById('categoryIsActive').checked = cat.is_active;
+                    title.innerText = 'Edit Kategori';
+                    btnSave.innerText = 'Simpan Perubahan';
+                }
+            } else {
+                document.getElementById('categoryId').value = '';
+                document.getElementById('categoryIsActive').checked = true;
+                title.innerText = 'Tambah Kategori Baru';
+                btnSave.innerText = 'Simpan Kategori';
+            }
+            
+            document.getElementById('modalCategory').classList.remove('hidden');
+        }
+
+        function closeModalCategory() {
+            document.getElementById('modalCategory').classList.add('hidden');
+        }
+
+        async function saveCategory(e) {
+            e.preventDefault();
+            const id = document.getElementById('categoryId').value;
+            const data = {
+                name: document.getElementById('categoryName').value.trim(),
+                description: document.getElementById('categoryDesc').value.trim(),
+                is_active: document.getElementById('categoryIsActive').checked
+            };
+
+            const btnSave = document.getElementById('btnSaveCategory');
+            const originalText = btnSave.innerText;
+            btnSave.innerText = 'Menyimpan...';
+            btnSave.disabled = true;
+
+            let res;
+            if (id) {
+                res = await updateRecord('akt_categories', id, data);
+            } else {
+                res = await insertRecord('akt_categories', data);
+            }
+
+            btnSave.innerText = originalText;
+            btnSave.disabled = false;
+
+            if (res && res.error) {
+                Swal.fire({icon: 'error', title: 'Gagal', text: res.error.message, background: '#1f2937', color: '#fff'});
+            } else {
+                Swal.fire({icon: 'success', title: 'Berhasil', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
+                closeModalCategory();
+                loadCategories();
+            }
+        }
+
+        async function deleteCategory(id) {
+            Swal.fire({
+                title: 'Hapus Kategori?',
+                text: "Kategori yang sudah dihapus tidak dapat dikembalikan.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#4b5563',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
+                background: '#1f2937',
+                color: '#fff'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const res = await deleteRecord('akt_categories', id);
+                    if (res && res.error) {
+                        Swal.fire({icon: 'error', title: 'Gagal', text: res.error.message, background: '#1f2937', color: '#fff'});
+                    } else {
+                        Swal.fire({icon: 'success', title: 'Terhapus', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
+                        loadCategories();
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
