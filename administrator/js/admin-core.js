@@ -67,14 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.loadDashboardStats = async () => {
-    const mockUsers = JSON.parse(localStorage.getItem('vitta_mock_users')) || [];
-    const pendingCount = mockUsers.filter(u => u.status === 'PENDING').length;
-    const totalCount = mockUsers.length + 1; // plus budileo (owner)
+    if (!window.supabaseClient) return;
+    try {
+        const { count, error } = await window.supabaseClient
+            .from('akt_user_profiles')
+            .select('*', { count: 'exact', head: true });
+        
+        if (!error && count !== null) {
+            const elTotal = document.getElementById('total-users');
+            if (elTotal) elTotal.innerText = count;
+        }
 
-    const elTotal = document.getElementById('total-users');
-    const elPending = document.getElementById('pending-users');
-    if (elTotal) elTotal.innerText = totalCount;
-    if (elPending) elPending.innerText = pendingCount;
+        const { count: pendingCount, error: pendingError } = await window.supabaseClient
+            .from('akt_user_profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'PENDING');
+            
+        if (!pendingError && pendingCount !== null) {
+            const elPending = document.getElementById('pending-users');
+            if (elPending) elPending.innerText = pendingCount;
+        }
+    } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
+    }
 };
 
 window.logout = () => {

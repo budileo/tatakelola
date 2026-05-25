@@ -5,22 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pengaturan - Administrator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
 
 <div class="flex flex-col md:flex-row">
-    <!-- Sidebar (Same as index.html) -->
+    <!-- Sidebar -->
     <div class="bg-gray-800 shadow-xl h-16 fixed bottom-0 md:relative md:h-screen z-10 w-full md:w-64">
         <div class="md:mt-12 md:w-64 md:fixed md:left-0 md:top-0 content-center md:content-start text-left justify-between">
             <ul class="list-reset flex flex-row md:flex-col py-0 md:py-3 px-1 md:px-2 text-center md:text-left">
                 <li class="mr-3 flex-1 back-to-index-menu-admin">
                     <a href="../index.html" class="block py-1 md:py-3 pl-1 align-middle text-gray-400 hover:text-white border-b-2 border-gray-800 hover:border-blue-500">
-                        <i class="fas fa-arrow-left pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 md:text-gray-200 block md:inline-block">Kembali ke Index</span>
+                        <i class="fas fa-arrow-left pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 block md:inline-block">Kembali ke Index</span>
                     </a>
                 </li>
                 <li class="mr-3 flex-1">
                     <a href="index.html" class="block py-1 md:py-3 pl-1 align-middle text-gray-400 hover:text-white border-b-2 border-gray-800 hover:border-blue-600">
-                        <i class="fas fa-home pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 md:text-gray-200 block md:inline-block">Admin Dashboard</span>
+                        <i class="fas fa-home pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 block md:inline-block">Admin Dashboard</span>
+                    </a>
+                </li>
+                <li class="mr-3 flex-1">
+                    <a href="departments.html" class="block py-1 md:py-3 pl-1 align-middle text-gray-400 hover:text-white border-b-2 border-gray-800 hover:border-orange-500">
+                        <i class="fas fa-briefcase pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 block md:inline-block">Departemen</span>
+                    </a>
+                </li>
+                <li class="mr-3 flex-1">
+                    <a href="users.html" class="block py-1 md:py-3 pl-1 align-middle text-gray-400 hover:text-white border-b-2 border-gray-800 hover:border-pink-500">
+                        <i class="fas fa-users pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 block md:inline-block">Pengguna</span>
                     </a>
                 </li>
                 <li class="mr-3 flex-1">
@@ -33,7 +46,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="main-content flex-1 bg-gray-100 mt-12 md:mt-2 pb-24 md:pb-5">
+    <div class="main-content flex-1 bg-gray-100 mt-12 md:mt-2 pb-24 md:pb-5 h-screen overflow-y-auto">
         <div class="bg-blue-800 p-2 shadow text-xl text-white flex justify-between">
             <h3 class="font-bold pl-2">Pengaturan Sistem</h3>
             <button onclick="logout()" class="text-sm bg-red-500 hover:bg-red-600 px-3 py-1 rounded">Logout</button>
@@ -41,45 +54,73 @@
 
         <div class="p-6">
             <div class="bg-white rounded shadow p-6 mb-6">
-                <h2 class="text-xl font-bold mb-4 border-b pb-2">Tautan Undangan (Invite Link)</h2>
-                <p class="text-gray-600 mb-4">Gunakan tautan ini untuk mengundang karyawan baru. Mereka akan masuk dengan status <b>PENDING</b> dan harus disetujui oleh Manager.</p>
+                <h2 class="text-xl font-bold mb-4 border-b pb-2">Tautan Undangan Departemen (Invite Link)</h2>
+                <p class="text-gray-600 mb-4">Gunakan tautan ini untuk mengundang karyawan baru ke departemen yang saat ini aktif <b><span id="activeDeptName" class="text-blue-600"></span></b>. Mereka akan masuk dengan status <b>PENDING</b> dan harus Anda setujui di menu Pengguna.</p>
                 
                 <div class="flex items-center gap-2">
-                    <input type="text" id="invite-link" class="w-full bg-gray-100 border p-2 rounded" readonly>
-                    <button onclick="copyInviteLink()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Salin</button>
+                    <input type="text" id="invite-link" class="w-full bg-gray-100 border p-2 rounded" readonly placeholder="Memuat...">
+                    <button onclick="copyInviteLink()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">Salin</button>
                 </div>
             </div>
             
-            <div class="bg-white rounded shadow p-6 border-l-4 border-yellow-500">
-                <h2 class="text-xl font-bold mb-4">Akses Terbatas Owner</h2>
-                <p class="text-gray-600 mb-2">Sesuai aturan, pengelolaan <b>Departemen, Token, dan COA</b> berada di bawah otoritas Owner penuh.</p>
+            <div class="bg-white rounded shadow p-6 border-l-4 border-yellow-500 mb-6">
+                <h2 class="text-xl font-bold mb-4">Pengaturan Lanjutan (SaaS)</h2>
+                <p class="text-gray-600 mb-2">Manajemen Tag dan Kategori untuk modul Akuntansi dipindahkan ke menu Pengaturan di panel utama Akuntansi.</p>
                 <div class="flex gap-2">
-                    <button class="bg-gray-800 text-white px-4 py-2 rounded opacity-50 cursor-not-allowed">Kelola Departemen</button>
-                    <button class="bg-gray-800 text-white px-4 py-2 rounded opacity-50 cursor-not-allowed">Kelola Token</button>
+                    <a href="../akuntansi/pengaturan.html" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow font-bold">Kelola Tag & Kategori</a>
+                    <a href="departments.html" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded shadow font-bold">Kelola Departemen</a>
                 </div>
-                <p class="text-xs text-gray-400 mt-2">* Fitur masih dalam pengembangan Mockup.</p>
             </div>
         </div>
     </div>
 </div>
 
 <script src="../js/auth.js"></script>
+<script src="../js/supabase-db.js"></script>
 <script src="js/admin-core.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         const user = await window.checkAdminAuth();
         if(user) {
-            // Generate link based on current origin
-            const link = window.location.origin + '/register-invite.html?token=sys-invite-token';
-            document.getElementById('invite-link').value = link;
+            if (window.supabaseClient) {
+                loadSettings();
+            } else {
+                window.addEventListener('vitta-saas-ready', loadSettings);
+            }
         }
     });
+
+    async function loadSettings() {
+        if (!window.VITTA_PROFILE || !window.VITTA_PROFILE.department_id) {
+            document.getElementById('invite-link').value = 'Anda belum memilih departemen.';
+            return;
+        }
+
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('akt_departments')
+                .select('*')
+                .eq('id', window.VITTA_PROFILE.department_id)
+                .single();
+                
+            if (error) throw error;
+            
+            if (data) {
+                document.getElementById('activeDeptName').innerText = data.name;
+                const link = window.location.origin + window.location.pathname.replace('administrator/settings.html', '') + 'register-invite.html?token=' + data.invite_token;
+                document.getElementById('invite-link').value = link;
+            }
+        } catch (err) {
+            console.error(err);
+            document.getElementById('invite-link').value = 'Gagal memuat link.';
+        }
+    }
 
     function copyInviteLink() {
         const linkInput = document.getElementById('invite-link');
         linkInput.select();
         document.execCommand('copy');
-        alert('Link tersalin!');
+        Swal.fire({icon: 'success', title: 'Disalin!', text: 'Link undangan berhasil disalin', timer: 1500, showConfirmButton: false});
     }
 </script>
     <script src='../js/theme.js'></script>

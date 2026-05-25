@@ -6,6 +6,8 @@
     <title>Manajemen Pengguna - Administrator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
 
@@ -16,7 +18,7 @@
             <ul class="list-reset flex flex-row md:flex-col py-0 md:py-3 px-1 md:px-2 text-center md:text-left">
                 <li class="mr-3 flex-1 back-to-index-menu-admin">
                     <a href="../index.html" class="block py-1 md:py-3 pl-1 align-middle text-gray-400 hover:text-white border-b-2 border-gray-800 hover:border-blue-500">
-                        <i class="fas fa-arrow-left pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 md:text-gray-200 block md:inline-block">Kembali ke Index</span>
+                        <i class="fas fa-arrow-left pr-0 md:pr-3"></i><span class="pb-1 md:pb-0 text-xs md:text-base text-gray-400 block md:inline-block">Kembali ke Index</span>
                     </a>
                 </li>
                 <li class="mr-3 flex-1">
@@ -44,28 +46,32 @@
     </div>
 
     <!-- Main Content -->
-    <div class="main-content flex-1 bg-gray-100 mt-12 md:mt-2 pb-24 md:pb-5">
+    <div class="main-content flex-1 bg-gray-100 mt-12 md:mt-2 pb-24 md:pb-5 h-screen overflow-y-auto">
         <div class="bg-blue-800 p-2 shadow text-xl text-white flex justify-between">
             <h3 class="font-bold pl-2">Manajemen Pengguna</h3>
             <button onclick="logout()" class="text-sm bg-red-500 hover:bg-red-600 px-3 py-1 rounded">Logout</button>
         </div>
 
         <div class="p-6">
-            <h2 class="text-2xl font-bold mb-6">Daftar Pengguna / Karyawan</h2>
-            
+            <div class="bg-white p-4 rounded shadow mb-6 border-l-4 border-yellow-500">
+                <h4 class="font-bold text-gray-700"><i class="fas fa-info-circle text-yellow-500"></i> Cara Mengundang Tim</h4>
+                <p class="text-sm text-gray-600 mt-1">Sistem ini murni menggunakan <i>Invite Link</i> per departemen. Bagikan Link Undang dari halaman Departemen ke tim Anda. Setelah mereka mendaftar, mereka akan muncul di sini sebagai <b>PENDING</b> dan harus Anda <b>Approve</b>.</p>
+            </div>
+
+            <!-- Table -->
             <div class="bg-white rounded shadow overflow-x-auto">
                 <table class="min-w-full leading-normal">
                     <thead>
                         <tr>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nama & Email</th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Departemen</th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Pengguna</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="usersTableBody">
-                        <!-- Rows populated by JS -->
+                    <tbody id="userTableBody">
+                        <tr><td colspan="5" class="text-center py-4">Memuat pengguna...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -74,87 +80,108 @@
 </div>
 
 <script src="../js/auth.js"></script>
+<script src="../js/supabase-db.js"></script>
 <script src="js/admin-core.js"></script>
 <script>
-    let users = [];
+    let usersData = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
-        const currentUser = await window.checkAdminAuth();
-        if(currentUser) {
-            loadUsers();
+        const user = await window.checkAdminAuth();
+        if(user) {
+            if (window.supabaseClient) {
+                loadUsers();
+            } else {
+                window.addEventListener('vitta-saas-ready', loadUsers);
+            }
         }
     });
 
-    function loadUsers() {
-        users = JSON.parse(localStorage.getItem('vitta_mock_users')) || [];
-        renderTable();
-    }
-
-    function saveUsers() {
-        localStorage.setItem('vitta_mock_users', JSON.stringify(users));
-        loadUsers();
-    }
-
-    function renderTable() {
-        const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = '';
-        
-        if (users.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center text-gray-500">Belum ada karyawan terdaftar. Silakan bagikan Link Invite ke karyawan Anda.</td></tr>`;
+    async function loadUsers() {
+        if (!window.VITTA_PROFILE || !window.VITTA_PROFILE.department_id) {
+            document.getElementById('userTableBody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-red-500">Anda belum masuk ke dalam departemen manapun.</td></tr>';
             return;
         }
 
-        users.forEach(u => {
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('akt_user_profiles')
+                .select('*')
+                .eq('department_id', window.VITTA_PROFILE.department_id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            usersData = data || [];
+            renderTable();
+        } catch (err) {
+            console.error(err);
+            Swal.fire('Error', 'Gagal memuat pengguna.', 'error');
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '';
+        
+        if(usersData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Tidak ada pengguna lain di departemen ini.</td></tr>';
+            return;
+        }
+
+        usersData.forEach(u => {
             const tr = document.createElement('tr');
             
             let statusBadge = '';
-            if (u.status === 'PENDING') statusBadge = '<span class="relative inline-block px-3 py-1 font-semibold text-orange-900 leading-tight"><span aria-hidden class="absolute inset-0 bg-orange-200 opacity-50 rounded-full"></span><span class="relative">PENDING</span></span>';
-            else if (u.status === 'ACTIVE') statusBadge = '<span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight"><span aria-hidden class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span><span class="relative">AKTIF</span></span>';
-            
-            let actions = '';
-            if (u.status === 'PENDING') {
-                actions = `<button onclick="approveUser('${u.id}')" class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded text-xs">Approve</button>`;
+            if(u.status === 'ACTIVE') statusBadge = '<span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight"><span aria-hidden class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span><span class="relative">Aktif</span></span>';
+            else if(u.status === 'PENDING') statusBadge = '<span class="relative inline-block px-3 py-1 font-semibold text-yellow-900 leading-tight"><span aria-hidden class="absolute inset-0 bg-yellow-200 opacity-50 rounded-full"></span><span class="relative">Menunggu</span></span>';
+            else statusBadge = '<span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight"><span aria-hidden class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span><span class="relative">Banned</span></span>';
+
+            let aksi = '';
+            if(u.role === 'OWNER') {
+                aksi = '<span class="text-xs text-gray-400 italic">Pemilik (Akses Penuh)</span>';
             } else {
-                actions = `<button class="text-gray-400 cursor-not-allowed py-1 px-2 text-xs">Approved</button>`;
+                if(u.status === 'PENDING') {
+                    aksi += `<button onclick="updateUserStatus('${u.id}', 'ACTIVE')" class="text-green-600 hover:text-green-900 mr-3 font-bold"><i class="fas fa-check"></i> Approve</button>`;
+                }
+                if(u.status !== 'BANNED') {
+                    aksi += `<button onclick="updateUserStatus('${u.id}', 'BANNED')" class="text-red-600 hover:text-red-900"><i class="fas fa-ban"></i> Ban</button>`;
+                } else {
+                    aksi += `<button onclick="updateUserStatus('${u.id}', 'ACTIVE')" class="text-blue-600 hover:text-blue-900"><i class="fas fa-undo"></i> Unban</button>`;
+                }
             }
 
             tr.innerHTML = `
                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                    <p class="text-gray-900 whitespace-no-wrap font-bold">${u.name}</p>
-                    <p class="text-gray-600 text-xs">${u.email}</p>
+                    <p class="text-gray-900 whitespace-no-wrap font-bold">${u.full_name}</p>
+                    <p class="text-gray-500 text-xs mt-1">Gabung: ${new Date(u.created_at).toLocaleDateString('id-ID')}</p>
                 </td>
                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                    <p class="text-gray-900 whitespace-no-wrap">${u.department_name || '-'}</p>
+                    <p class="text-gray-900 whitespace-no-wrap">${u.email}</p>
                 </td>
-                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                    <p class="text-gray-900 whitespace-no-wrap">${u.role || 'STAF'}</p>
+                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
+                    <p class="text-gray-900 whitespace-no-wrap font-semibold">${u.role}</p>
                 </td>
-                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
                     ${statusBadge}
                 </td>
-                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                    ${actions}
-                    <button onclick="deleteUser('${u.id}')" class="text-red-500 hover:text-red-700 ml-2"><i class="fas fa-trash"></i></button>
+                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
+                    ${aksi}
                 </td>
             `;
             tbody.appendChild(tr);
         });
     }
 
-    function approveUser(id) {
-        if(confirm('Approve karyawan ini?')) {
-            const index = users.findIndex(u => u.id === id);
-            if (index > -1) {
-                users[index].status = 'ACTIVE';
-                saveUsers();
+    async function updateUserStatus(id, newStatus) {
+        if(confirm(`Apakah Anda yakin ingin mengubah status pengguna menjadi ${newStatus}?`)) {
+            try {
+                const { error } = await window.supabaseClient.from('akt_user_profiles').update({ status: newStatus }).eq('id', id);
+                if (error) throw error;
+                
+                Swal.fire({icon: 'success', title: 'Berhasil', text: 'Status diperbarui', timer: 1500, showConfirmButton: false});
+                loadUsers();
+            } catch (err) {
+                Swal.fire('Error', 'Gagal memperbarui status: ' + err.message, 'error');
             }
-        }
-    }
-
-    function deleteUser(id) {
-        if(confirm('Hapus karyawan ini?')) {
-            users = users.filter(u => u.id !== id);
-            saveUsers();
         }
     }
 </script>
