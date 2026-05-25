@@ -330,12 +330,12 @@
                 // Dan pastikan minimal departemen aktif saat ini terinisialisasi
                 if (activeDeptId) {
                     const activeScopedKey = activeDeptId + '_' + baseKey;
-                    const activeList = grouped[activeDeptId] || [];
+                    const activeList = [...(grouped[activeDeptId] || []), ...(grouped['global'] || [])];
                     localStorage.setItem(activeScopedKey, JSON.stringify(activeList));
                 }
 
                 for (const [deptId, list] of Object.entries(grouped)) {
-                    if (deptId !== 'global') {
+                    if (deptId !== 'global' && deptId !== activeDeptId) {
                         const scopedKey = deptId + '_' + baseKey;
                         localStorage.setItem(scopedKey, JSON.stringify(list));
                     }
