@@ -374,7 +374,7 @@
             }));
         }
 
-        async function renderTable() {
+        async function loadAndRenderTable() {
             contacts = await fetchContacts();
 
             const tbody = document.getElementById('contactTableBody');
@@ -508,7 +508,7 @@
                         background: '#1f2937', color: '#fff',
                         showConfirmButton: false, timer: 1500
                     });
-                    await renderTable();
+                    await loadAndRenderTable();
                 }
             });
         }
@@ -647,16 +647,16 @@
             });
 
             closeModal();
-            await renderTable();
+            await loadAndRenderTable();
         }
 
         window.renderTable = async function() {
-            await renderTable();
+            await loadAndRenderTable();
         };
 
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
-                renderTable();
+                loadAndRenderTable();
             }, 500);
         });
 
