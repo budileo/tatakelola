@@ -223,15 +223,17 @@
                 tbody.innerHTML = html;
             }
 
-            // Populate category select
             function populateCategories() {
                 const select = document.getElementById('coaCategory');
                 const categories = window.VittaCOA.getCategories();
-                select.innerHTML = '<option value="">-- Pilih Kategori --</option>' + categories.map(c => \`<option value="\${c}">\${c}</option>\`).join('');
+                select.innerHTML = '<option value="">-- Pilih Kategori --</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
             }
             populateCategories();
 
             renderCOA();
+
+            // Ekspos ke global agar sinkronisasi latar belakang bisa memicu render ulang
+            window.renderTable = () => renderCOA(searchInput ? searchInput.value : '');
 
             window.openModalAdd = function() {
                 document.getElementById('coaForm').reset();
