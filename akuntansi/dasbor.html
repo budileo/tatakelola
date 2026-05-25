@@ -180,10 +180,10 @@
             console.log("📊 Mengkalkulasikan data dasbor riil...");
             
             // 0. Update Judul Dasbor
-            if (window.VITTA_PROFILE && window.VITTA_PROFILE.akt_departments) {
+            if (window.VITTA_USER && window.VITTA_USER.department_name) {
                 const titleEl = document.getElementById('dashboard-title');
                 if (titleEl) {
-                    titleEl.innerText = window.VITTA_PROFILE.akt_departments.name;
+                    titleEl.innerText = window.VITTA_USER.department_name;
                 }
             }
 
