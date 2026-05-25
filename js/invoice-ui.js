@@ -73,7 +73,14 @@ async function initForm() {
     // Multi-tag checkboxes
     const tagContainer = document.getElementById('fTagCheckboxes');
     if (tagContainer) {
-        tagContainer.innerHTML = DB.tags.map(t => `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-dark-700/50 px-2 py-1 rounded"><input type="checkbox" value="${t}" class="tagCheck accent-blue-500"><span class="text-sm text-gray-300">${t}</span></label>`).join('');
+        const { data: tagData } = await readRecords('akt_tags', { is_active: true });
+        if (tagData) {
+            const dynamicTags = tagData.filter(t => t.type === 'Global' || t.type === 'Penjualan');
+            tagContainer.innerHTML = dynamicTags.map(t => `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-dark-700/50 px-2 py-1 rounded"><input type="checkbox" value="${t.name}" class="tagCheck accent-blue-500"><span class="text-sm font-medium" style="color: ${t.color || '#d1d5db'}">${t.name}</span></label>`).join('');
+            if (dynamicTags.length === 0) tagContainer.innerHTML = '<span class="text-xs text-gray-500 italic flex items-center">Belum ada tag khusus Penjualan yang aktif.</span>';
+        } else {
+            tagContainer.innerHTML = '<span class="text-xs text-rose-500 italic flex items-center">Gagal memuat tag.</span>';
+        }
     }
     
     // --- Sinkronisasi Bank Akun dinamis dari Supabase ---

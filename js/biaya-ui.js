@@ -7,7 +7,6 @@ var formatDate = formatDate || ((d) => {
 });
 var today = today || (() => new Date().toISOString().split('T')[0]);
 
-
 function toggleView(view) {
     if (view === 'form') {
         document.getElementById('listView').classList.add('hidden');
@@ -31,38 +30,47 @@ function togglePaymentMethod() {
     }
 }
 
-function initForm() {
+async function initForm() {
     document.getElementById('expenseDate').value = today();
     
-    // Load Kas Bank for Source Account
+    // Load Kas Bank for Source Account from Supabase
     const sourceSelect = document.getElementById('sourceAccount');
-    if (window.VittaCOA) {
-        const banks = window.VittaCOA.getAccounts().filter(a => a.category === 'Kas & Bank');
+    const { data: bankData } = await readRecords('akt_coa_accounts');
+    if (bankData) {
+        const banks = bankData.filter(a => a.category === 'Kas & Bank');
         sourceSelect.innerHTML = banks.map(b => `<option value="${b.code}" data-name="${b.name}">${b.name} (${b.code})</option>`).join('');
     }
     
-    // Load Contacts for Receiver
+    // Load Contacts for Receiver from Supabase
     const recSelect = document.getElementById('expenseReceiver');
-    let contactsList = [];
-    const scopedKey = window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts';
-    const localContacts = localStorage.getItem(scopedKey);
-    if(localContacts) {
-        try {
-            contactsList = JSON.parse(localContacts);
-        } catch(e) {}
+    const { data: contactsList } = await readRecords('akt_contacts');
+    if (contactsList) {
+        recSelect.innerHTML = '<option value="">-- Pilih Penerima (Kontak) --</option>' + contactsList.map(c => {
+            const name = (c.sapaan ? c.sapaan + ' ' : '') + (c.name || c.nama || '');
+            return `<option value="${name}">${name}</option>`;
+        }).join('');
     }
-    recSelect.innerHTML = '<option value="">-- Pilih Penerima (Kontak) --</option>' + contactsList.map(c => {
-        const name = (c.sapaan ? c.sapaan + ' ' : '') + c.nama;
-        return `<option value="${name}">${name}</option>`;
-    }).join('');
 
-    // Load Expense Accounts for Item Row
+    // Load Expense Accounts for Item Row from Supabase
     let expOptions = '';
-    if (window.VittaCOA) {
-        const exps = window.VittaCOA.getAccounts().filter(a => a.category === 'Beban' || a.category === 'Beban Lainnya' || a.category === 'Beban Operasional');
+    if (bankData) {
+        const exps = bankData.filter(a => a.category.includes('Beban'));
         expOptions = exps.map(b => `<option value="${b.code}" data-name="${b.name}">${b.code} - ${b.name}</option>`).join('');
     }
     window._EXP_ACCOUNTS = expOptions;
+
+    // Load Tags from Supabase
+    const tagContainer = document.getElementById('fTagCheckboxes');
+    if (tagContainer) {
+        const { data: tagData } = await readRecords('akt_tags', { is_active: true });
+        if (tagData) {
+            const dynamicTags = tagData.filter(t => t.type === 'Global' || t.type === 'Biaya');
+            tagContainer.innerHTML = dynamicTags.map(t => `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-dark-700/50 px-2 py-1 rounded"><input type="checkbox" value="${t.name}" class="tagCheck accent-blue-500"><span class="text-sm font-medium" style="color: ${t.color}">${t.name}</span></label>`).join('');
+            if (dynamicTags.length === 0) tagContainer.innerHTML = '<span class="text-xs text-gray-500 italic flex items-center">Belum ada tag khusus Biaya yang aktif.</span>';
+        } else {
+            tagContainer.innerHTML = '<span class="text-xs text-rose-500 italic flex items-center">Gagal memuat tag.</span>';
+        }
+    }
     
     const tbody = document.getElementById('itemsBody');
     tbody.innerHTML = `
@@ -82,6 +90,7 @@ function initForm() {
             </td>
         </tr>
     `;
+    calculateTotal();
 }
 
 function addRow() {
@@ -129,7 +138,6 @@ function calculateTotal() {
     
     if (isTaxInclusive && total > 0) {
         taxInfo.classList.remove('hidden');
-        // DPP = Total / 1.11, PPN = Total - DPP
         const dpp = total / 1.11;
         const ppn = total - dpp;
         document.getElementById('lblDPP').innerText = formatRp(dpp);
@@ -141,13 +149,13 @@ function calculateTotal() {
     document.getElementById('lblGrandTotal').innerText = formatRp(total);
 }
 
-function saveExpense() {
+async function saveExpense() {
     const date = document.getElementById('expenseDate').value;
     let receiver = document.getElementById('expenseReceiver').value;
     if(!receiver) receiver = "Pengeluaran Umum";
     
     if(!date) {
-        alert('Pilih tanggal terlebih dahulu.');
+        Swal.fire({icon: 'warning', title: 'Perhatian', text: 'Pilih tanggal terlebih dahulu.', background: '#1f2937', color: '#fff'});
         return;
     }
 
@@ -175,9 +183,13 @@ function saveExpense() {
     });
 
     if (items.length === 0) {
-        alert('Tambahkan minimal 1 baris biaya dengan nominal > 0.');
+        Swal.fire({icon: 'warning', title: 'Perhatian', text: 'Tambahkan minimal 1 baris biaya dengan nominal > 0.', background: '#1f2937', color: '#fff'});
         return;
     }
+
+    // Get selected tags
+    const checkedTags = Array.from(document.querySelectorAll('.tagCheck:checked')).map(cb => cb.value);
+    const tagString = checkedTags.join(', ');
 
     const grandTotalStr = document.getElementById('lblGrandTotal').innerText.replace(/[^\d]/g, '');
     const total = parseInt(grandTotalStr) || 0;
@@ -192,38 +204,84 @@ function saveExpense() {
         dpp = parseInt(dppStr) || 0;
         taxAmount = parseInt(taxStr) || 0;
         
-        // Adjust the amounts in items to be DPP proportional if needed
         let totalItems = 0;
         items.forEach(it => totalItems += it.amount);
         
         items.forEach(it => {
-            // proporsional dpp
             it.amount = (it.amount / totalItems) * dpp;
         });
     }
 
+    const d = new Date();
+    const expenseNo = `EXP/${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${Math.floor(Math.random() * 9000) + 1000}`;
+
     const expData = {
-        date, receiver, method, sourceCode, sourceName,
-        items, taxAmount, grandTotal: total, isTaxInclusive
+        expense_no: expenseNo,
+        date, 
+        receiver, 
+        method, 
+        source_code: sourceCode, 
+        source_name: sourceName,
+        items, 
+        tax_amount: taxAmount, 
+        grand_total: total,
+        tag: tagString,
+        notes: ''
     };
 
-    try {
-        window.VittaExpense.saveExpense(expData);
-        alert('Biaya berhasil dicatat!');
-        document.getElementById('expenseDate').value = '';
-        document.getElementById('expenseReceiver').value = '';
-        document.getElementById('taxInclusive').checked = false;
-        
-        renderTable();
-        toggleView('list');
-    } catch (e) {
-        alert(e.message);
+    // Save to Supabase akt_expenses
+    const { data: savedExp, error } = await insertRecord('akt_expenses', expData);
+    if (error) {
+        Swal.fire({icon: 'error', title: 'Gagal', text: error.message, background: '#1f2937', color: '#fff'});
+        return;
     }
+
+    // AUTO JOURNAL (Supabase akt_journals)
+    const jLines = [];
+    
+    // Debit: Akun-akun biaya
+    items.forEach(item => {
+        jLines.push({ account: item.accountCode, accountName: item.accountName, debit: item.amount, credit: 0 });
+    });
+
+    // Debit: PPN Masukan (Jika ada)
+    if (taxAmount > 0) {
+        jLines.push({ account: '1-10500', accountName: 'PPN Masukan', debit: taxAmount, credit: 0 });
+    }
+
+    // Kredit: Sumber Dana (Kas/Bank atau Hutang)
+    let creditCode = sourceCode;
+    let creditName = sourceName;
+    if (method === 'credit') {
+        creditCode = '2-20100'; // Hutang Usaha
+        creditName = 'Hutang Usaha';
+    }
+
+    jLines.push({ account: creditCode, accountName: creditName, debit: 0, credit: total });
+    
+    await insertRecord('akt_journals', {
+        date: date,
+        memo: `Biaya ${expenseNo} - ${receiver}`,
+        lines: jLines,
+        ref_id: expenseNo,
+        type: 'EXPENSE'
+    });
+
+    Swal.fire({icon: 'success', title: 'Berhasil', text: 'Biaya berhasil dicatat!', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
+    document.getElementById('expenseDate').value = '';
+    document.getElementById('expenseReceiver').value = '';
+    document.getElementById('taxInclusive').checked = false;
+    
+    renderTable();
+    toggleView('list');
 }
 
-function renderTable() {
-    if (!window.VittaExpense) return;
-    const expenses = window.VittaExpense.getExpenses();
+async function renderTable() {
+    const { data: expenses, error } = await readRecords('akt_expenses', {}, { order: { column: 'date', ascending: false } });
+    if (error) {
+        console.error("Gagal load expenses:", error);
+        return;
+    }
 
     const tbody = document.getElementById('expenseTableBody');
     if (!expenses || expenses.length === 0) {
@@ -233,16 +291,21 @@ function renderTable() {
     
     tbody.innerHTML = expenses.map(exp => {
         let sourceBadge = '';
-        if(exp.method === 'cash') sourceBadge = `<span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs">${exp.sourceName}</span>`;
+        if(exp.method === 'cash') sourceBadge = `<span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs">${exp.source_name}</span>`;
         else sourceBadge = `<span class="bg-orange-500/10 text-orange-400 px-2 py-1 rounded text-xs">Hutang Usaha</span>`;
+
+        let tagBadge = exp.tag ? `<br><span class="inline-block mt-1 text-[10px] bg-dark-700 text-gray-300 px-2 py-0.5 rounded">${exp.tag}</span>` : '';
 
         return `
         <tr class="hover:bg-dark-700/30 transition-colors">
-            <td class="px-6 py-4 font-medium text-white">${exp.id}</td>
+            <td class="px-6 py-4 font-medium text-white">${exp.expense_no}</td>
             <td class="px-6 py-4">${formatDate(exp.date)}</td>
-            <td class="px-6 py-4">${exp.receiver}</td>
+            <td class="px-6 py-4">
+                ${exp.receiver}
+                ${tagBadge}
+            </td>
             <td class="px-6 py-4">${sourceBadge}</td>
-            <td class="px-6 py-4 text-right">${formatRp(exp.grandTotal)}</td>
+            <td class="px-6 py-4 text-right">${formatRp(exp.grand_total)}</td>
             <td class="px-6 py-4 text-center">
                 <button onclick="viewExpense('${exp.id}')" class="text-blue-400 hover:text-blue-300">Lihat</button>
             </td>
@@ -250,18 +313,16 @@ function renderTable() {
     }).join('');
 }
 
-// ========== MODAL LOGIC ==========
-function viewExpense(id) {
-    if (!window.VittaExpense) return;
-    const expenses = window.VittaExpense.getExpenses();
-    const exp = expenses.find(e => e.id === id);
-    if (!exp) return;
+async function viewExpense(id) {
+    const { data: expenses } = await readRecords('akt_expenses', { id: id });
+    if (!expenses || expenses.length === 0) return;
+    const exp = expenses[0];
 
-    document.getElementById('modalExpId').innerText = exp.id;
+    document.getElementById('modalExpId').innerText = exp.expense_no;
     document.getElementById('modalExpDate').innerText = formatDate(exp.date);
     document.getElementById('modalExpReceiver').innerText = exp.receiver;
-    document.getElementById('modalExpMethod').innerText = exp.method === 'cash' ? exp.sourceName : 'Hutang Usaha';
-    document.getElementById('modalExpTotal').innerText = formatRp(exp.grandTotal);
+    document.getElementById('modalExpMethod').innerText = exp.method === 'cash' ? exp.source_name : 'Hutang Usaha';
+    document.getElementById('modalExpTotal').innerText = formatRp(exp.grand_total);
 
     const tbody = document.getElementById('modalExpItems');
     tbody.innerHTML = exp.items.map(it => `
@@ -273,8 +334,8 @@ function viewExpense(id) {
     `).join('');
 
     const taxInfo = document.getElementById('modalExpTaxInfo');
-    if (exp.taxAmount > 0) {
-        taxInfo.innerHTML = `Termasuk PPN Masukan: <b>${formatRp(exp.taxAmount)}</b>`;
+    if (exp.tax_amount > 0) {
+        taxInfo.innerHTML = `Termasuk PPN Masukan: <b>${formatRp(exp.tax_amount)}</b>`;
     } else {
         taxInfo.innerHTML = '';
     }
@@ -289,7 +350,19 @@ function closeModalExpense() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.VittaExpense) {
+    // Inject SweetAlert2
+    if(typeof Swal === 'undefined'){
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/sweetalert2@11";
+        document.head.appendChild(script);
+    }
+    
+    // Auto render table when ready
+    if (window.supabaseClient) {
         renderTable();
+    } else {
+        window.addEventListener('vitta-saas-ready', () => {
+            renderTable();
+        });
     }
 });

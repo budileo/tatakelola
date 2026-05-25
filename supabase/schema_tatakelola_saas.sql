@@ -113,26 +113,32 @@ ALTER TABLE public.akt_stock_ledger ENABLE ROW LEVEL SECURITY;
 -- Buat Kebijakan RLS (user_id = auth.uid()) untuk masing-masing tabel
 
 -- A. Departemen
+DROP POLICY IF EXISTS "Allow CRUD own departments" ON public.akt_departments;
 CREATE POLICY "Allow CRUD own departments" ON public.akt_departments
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- B. User Profiles
+DROP POLICY IF EXISTS "Allow CRUD own profiles" ON public.akt_user_profiles;
 CREATE POLICY "Allow CRUD own profiles" ON public.akt_user_profiles
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- C. Bagan Akun (COA)
+DROP POLICY IF EXISTS "Allow CRUD own coa" ON public.akt_coa_accounts;
 CREATE POLICY "Allow CRUD own coa" ON public.akt_coa_accounts
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- D. Buku Jurnal
+DROP POLICY IF EXISTS "Allow CRUD own journals" ON public.akt_journals;
 CREATE POLICY "Allow CRUD own journals" ON public.akt_journals
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- E. Master Produk
+DROP POLICY IF EXISTS "Allow CRUD own products" ON public.akt_products;
 CREATE POLICY "Allow CRUD own products" ON public.akt_products
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- F. Mutasi Stok
+DROP POLICY IF EXISTS "Allow CRUD own stock ledger" ON public.akt_stock_ledger;
 CREATE POLICY "Allow CRUD own stock ledger" ON public.akt_stock_ledger
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -158,6 +164,7 @@ CREATE TABLE IF NOT EXISTS public.akt_contacts (
 );
 
 ALTER TABLE public.akt_contacts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow CRUD own contacts" ON public.akt_contacts;
 CREATE POLICY "Allow CRUD own contacts" ON public.akt_contacts
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -217,6 +224,7 @@ CREATE TABLE IF NOT EXISTS public.akt_assets (
 
 ALTER TABLE public.akt_assets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow CRUD own assets" ON public.akt_assets;
 CREATE POLICY "Allow CRUD own assets" ON public.akt_assets
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -261,6 +269,7 @@ CREATE TABLE IF NOT EXISTS public.akt_invoices (
 
 ALTER TABLE public.akt_invoices ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow CRUD own invoices" ON public.akt_invoices;
 CREATE POLICY "Allow CRUD own invoices" ON public.akt_invoices
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -296,6 +305,7 @@ CREATE TABLE IF NOT EXISTS public.akt_categories (
 
 ALTER TABLE public.akt_categories ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow CRUD own categories" ON public.akt_categories;
 CREATE POLICY "Allow CRUD own categories" ON public.akt_categories
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
@@ -318,8 +328,83 @@ CREATE TABLE IF NOT EXISTS public.akt_tags (
 
 ALTER TABLE public.akt_tags ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow CRUD own tags" ON public.akt_tags;
 CREATE POLICY "Allow CRUD own tags" ON public.akt_tags
     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_akt_tags_type ON public.akt_tags(type);
 
+-- ============================================================
+-- 13. Tabel Pembelian (akt_purchases)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.akt_purchases (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_id UUID NOT NULL,
+    department_id UUID REFERENCES public.akt_departments(id) ON DELETE CASCADE,
+    purchase_no VARCHAR(50) NOT NULL,
+    supplier_id UUID REFERENCES public.akt_contacts(id),
+    supplier_name VARCHAR(255),
+    date DATE NOT NULL,
+    due_date DATE,
+    termin VARCHAR(20),
+    ref VARCHAR(100),
+    tag VARCHAR(255),
+    items JSONB NOT NULL,
+    subtotal NUMERIC(15,2) DEFAULT 0.00,
+    shipping NUMERIC(15,2) DEFAULT 0.00,
+    tx_fee NUMERIC(15,2) DEFAULT 0.00,
+    total_ppn NUMERIC(15,2) DEFAULT 0.00,
+    grand_total NUMERIC(15,2) DEFAULT 0.00,
+    potongan NUMERIC(15,2) DEFAULT 0.00,
+    dp NUMERIC(15,2) DEFAULT 0.00,
+    dp_account VARCHAR(50),
+    dp_account_name VARCHAR(255),
+    sisa_hutang NUMERIC(15,2) DEFAULT 0.00,
+    total_paid NUMERIC(15,2) DEFAULT 0.00,
+    status VARCHAR(20) DEFAULT 'belum',
+    note TEXT,
+    message TEXT,
+    payments JSONB DEFAULT '[]'::jsonb
+);
+
+ALTER TABLE public.akt_purchases ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow CRUD own purchases" ON public.akt_purchases;
+CREATE POLICY "Allow CRUD own purchases" ON public.akt_purchases
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_akt_purchases_no ON public.akt_purchases(purchase_no);
+CREATE INDEX IF NOT EXISTS idx_akt_purchases_date ON public.akt_purchases(date);
+
+-- ============================================================
+-- 14. Tabel Biaya / Pengeluaran (akt_expenses)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.akt_expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_id UUID NOT NULL,
+    department_id UUID REFERENCES public.akt_departments(id) ON DELETE CASCADE,
+    expense_no VARCHAR(50) NOT NULL,
+    date DATE NOT NULL,
+    receiver VARCHAR(255),
+    ref VARCHAR(100),
+    tag VARCHAR(255),
+    method VARCHAR(50) DEFAULT 'cash', -- cash, transfer, credit
+    source_code VARCHAR(50),
+    source_name VARCHAR(255),
+    items JSONB NOT NULL,
+    subtotal NUMERIC(15,2) DEFAULT 0.00,
+    tax_amount NUMERIC(15,2) DEFAULT 0.00,
+    grand_total NUMERIC(15,2) DEFAULT 0.00,
+    notes TEXT
+);
+
+ALTER TABLE public.akt_expenses ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow CRUD own expenses" ON public.akt_expenses;
+CREATE POLICY "Allow CRUD own expenses" ON public.akt_expenses
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_akt_expenses_no ON public.akt_expenses(expense_no);
+CREATE INDEX IF NOT EXISTS idx_akt_expenses_date ON public.akt_expenses(date);
