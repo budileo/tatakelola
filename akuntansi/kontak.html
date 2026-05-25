@@ -329,47 +329,53 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/supabase-db.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/sidebar.js"></script>
     <script>
-        // --- Mock Data & Logic ---
-        const scopedKey = window.getScopedKey ? window.getScopedKey('vitta_contacts') : 'vitta_contacts';
-        
         let contacts = [];
-        const scopedRaw = localStorage.getItem(scopedKey);
-        if (scopedRaw) {
-            try {
-                contacts = JSON.parse(scopedRaw);
-            } catch(e) { contacts = []; }
-        } else {
-            // Legacy data migration: put into active department as requested by user
-            const legacyRaw = localStorage.getItem('vitta_contacts');
-            if (legacyRaw) {
-                try {
-                    contacts = JSON.parse(legacyRaw);
-                    localStorage.setItem(scopedKey, JSON.stringify(contacts));
-                } catch(e) {}
-            } else {
-                contacts = [];
-                localStorage.setItem(scopedKey, JSON.stringify(contacts));
-            }
-        }
-
         window.editContactId = null;
 
-        // Format Currency
         const formatRp = (angka) => {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
         };
 
-        // Render Table
-        function renderTable() {
-            const scopedRaw = localStorage.getItem(scopedKey);
-            if (scopedRaw) {
-                try {
-                    contacts = JSON.parse(scopedRaw);
-                } catch(e) { contacts = []; }
+        async function fetchContacts() {
+            const { data, error } = await readRecords('akt_contacts', {}, { order: { column: 'name', ascending: true } });
+            if (error) {
+                console.error("Gagal mengambil kontak:", error);
+                return [];
             }
+            return data.map(c => ({
+                id: c.id,
+                name: c.name,
+                company: c.company,
+                phone: c.phone,
+                email: c.email,
+                address: c.address,
+                npwp: c.npwp,
+                nik: c.nik,
+                notes: c.notes,
+                type: c.type,
+                status: c.status,
+                arBalance: Number(c.ar_balance),
+                apBalance: Number(c.ap_balance),
+                sapaan: c.sapaan,
+                kota: c.kota,
+                provinsi: c.provinsi,
+                kodePos: c.kode_pos,
+                termin: c.termin,
+                pajak: c.pajak,
+                mataUang: c.mata_uang,
+                arCode: c.ar_code,
+                apCode: c.ap_code
+            }));
+        }
+
+        async function renderTable() {
+            contacts = await fetchContacts();
 
             const tbody = document.getElementById('contactTableBody');
             const search = document.getElementById('searchInput').value.toLowerCase();
@@ -378,42 +384,33 @@
             if (!tbody) return;
             tbody.innerHTML = '';
             
-            // Filter and Sort (Alphabetical by Name)
             let filtered = contacts.filter(c => {
-                const name = c.name || c.nama || '';
+                const name = c.name || '';
                 const email = c.email || '';
                 const matchSearch = name.toLowerCase().includes(search) || email.toLowerCase().includes(search);
-                
-                const type = c.type || c.tipe || 'Customer';
+                const type = c.type || 'Customer';
                 const matchFilter = filter === 'all' ? true : type === filter;
                 return matchSearch && matchFilter;
-            }).sort((a, b) => {
-                const nameA = a.name || a.nama || '';
-                const nameB = b.name || b.nama || '';
-                return nameA.localeCompare(nameB);
             });
 
             let totalAR = 0;
             let totalAP = 0;
 
             filtered.forEach(c => {
-                const arVal = parseFloat(c.arBalance !== undefined ? c.arBalance : (c.ar !== undefined ? c.ar : 0));
-                const apVal = parseFloat(c.apBalance !== undefined ? c.apBalance : (c.ap !== undefined ? c.ap : 0));
+                totalAR += c.arBalance;
+                totalAP += c.apBalance;
                 
-                totalAR += arVal;
-                totalAP += apVal;
-                
-                const type = c.type || c.tipe || 'Customer';
+                const type = c.type || 'Customer';
                 let tipeBadge = '';
                 if(type === 'Customer') tipeBadge = `<span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-xs">Customer</span>`;
                 else if(type === 'Supplier') tipeBadge = `<span class="bg-rose-500/10 text-rose-400 px-2 py-1 rounded text-xs">Supplier</span>`;
                 else tipeBadge = `<span class="bg-purple-500/10 text-purple-400 px-2 py-1 rounded text-xs">Keduanya</span>`;
 
-                const phone = c.phone || c.telepon || '-';
+                const phone = c.phone || '-';
                 const email = c.email || '-';
-                const name = c.name || c.nama || '';
+                const name = c.name || '';
                 
-                const isActive = (c.status === true || c.statusText === 'ACTIVE' || c.status === 'ACTIVE');
+                const isActive = (c.status === 'ACTIVE');
                 let statusBadge = isActive 
                     ? `<span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs flex items-center justify-center w-max mx-auto"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Aktif</span>` 
                     : `<span class="bg-gray-500/10 text-gray-400 px-2 py-1 rounded text-xs flex items-center justify-center w-max mx-auto"><span class="w-1.5 h-1.5 rounded-full bg-gray-500 mr-1.5"></span> Nonaktif</span>`;
@@ -426,8 +423,8 @@
                         </td>
                         <td class="px-4 py-3">${tipeBadge}</td>
                         <td class="px-4 py-3">${phone}</td>
-                        <td class="px-4 py-3 text-right text-orange-400 font-medium">${formatRp(arVal)}</td>
-                        <td class="px-4 py-3 text-right text-rose-400 font-medium">${formatRp(apVal)}</td>
+                        <td class="px-4 py-3 text-right text-orange-400 font-medium">${formatRp(c.arBalance)}</td>
+                        <td class="px-4 py-3 text-right text-rose-400 font-medium">${formatRp(c.apBalance)}</td>
                         <td class="px-4 py-3 text-center">${statusBadge}</td>
                         <td class="px-4 py-3 text-center">
                             <button onclick="editContact('${c.id}')" class="text-blue-400 hover:text-blue-300 mx-1" title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
@@ -437,13 +434,11 @@
                 `;
             });
 
-            // Update Stats
             document.getElementById('statTotal').innerText = filtered.length;
             document.getElementById('statAR').innerText = formatRp(totalAR);
             document.getElementById('statAP').innerText = formatRp(totalAP);
         }
 
-        // Modal Functions
         function openModal() {
             window.editContactId = null;
             document.getElementById('contactForm').reset();
@@ -461,21 +456,20 @@
             window.editContactId = id;
             
             document.getElementById('inputSapaan').value = c.sapaan || '';
-            document.getElementById('inputNama').value = c.name || c.nama || '';
-            document.getElementById('inputPerusahaan').value = c.company || c.perusahaan || '';
-            document.getElementById('inputTelepon').value = c.phone || c.telepon || '';
+            document.getElementById('inputNama').value = c.name || '';
+            document.getElementById('inputPerusahaan').value = c.company || '';
+            document.getElementById('inputTelepon').value = c.phone || '';
             document.getElementById('inputEmail').value = c.email || '';
-            document.getElementById('inputAlamat').value = c.address || c.alamat || '';
+            document.getElementById('inputAlamat').value = c.address || '';
             document.getElementById('inputKota').value = c.kota || '';
             document.getElementById('inputProvinsi').value = c.provinsi || '';
             document.getElementById('inputKodePos').value = c.kodePos || '';
             document.getElementById('inputNPWP').value = c.npwp || '';
             document.getElementById('inputNIK').value = c.nik || '';
-            document.getElementById('inputCatatan').value = c.notes || c.catatan || '';
-            document.getElementById('inputTipe').value = c.type || c.tipe || 'Customer';
+            document.getElementById('inputCatatan').value = c.notes || '';
+            document.getElementById('inputTipe').value = c.type || 'Customer';
             
-            const isActive = (c.status === true || c.statusText === 'ACTIVE' || c.status === 'ACTIVE');
-            document.getElementById('inputStatus').checked = isActive;
+            document.getElementById('inputStatus').checked = (c.status === 'ACTIVE');
             
             document.getElementById('inputTermin').value = c.termin || 'Cash';
             document.getElementById('inputPajak').value = c.pajak || 'Non PPN';
@@ -489,22 +483,24 @@
             }, 10);
         }
 
-        function deleteContact(id) {
+        async function deleteContact(id) {
             Swal.fire({
                 title: 'Apakah Anda yakin?',
                 text: "Kontak ini akan dihapus secara permanen dari cloud database!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3b82f6',
-                cancelButtonColor: '#rose-600',
+                cancelButtonColor: '#e11d48',
                 confirmButtonText: 'Ya, Hapus!',
                 cancelButtonText: 'Batal',
                 background: '#1f2937', color: '#fff'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.isConfirmed) {
-                    contacts = contacts.filter(item => item.id !== id);
-                    localStorage.setItem(scopedKey, JSON.stringify(contacts));
-                    
+                    const { error } = await deleteRecord('akt_contacts', id);
+                    if (error) {
+                        Swal.fire('Gagal', error.message, 'error');
+                        return;
+                    }
                     Swal.fire({
                         icon: 'success',
                         title: 'Dihapus!',
@@ -512,7 +508,7 @@
                         background: '#1f2937', color: '#fff',
                         showConfirmButton: false, timer: 1500
                     });
-                    renderTable();
+                    await renderTable();
                 }
             });
         }
@@ -524,7 +520,6 @@
             }, 200);
         }
 
-        // Expandable Content
         function toggleExpand() {
             const content = document.getElementById('expandableContent');
             const icon = document.getElementById('expandIcon');
@@ -543,7 +538,6 @@
             }
         }
 
-        // Account Defaults Logic
         function updateAccountDefaults() {
             const tipe = document.getElementById('inputTipe').value;
             const arSelect = document.getElementById('inputAkunAR');
@@ -575,8 +569,7 @@
             }
         }
 
-        // Save Function
-        function saveContact() {
+        async function saveContact() {
             const form = document.getElementById('contactForm');
             if(!form.checkValidity()) {
                 form.reportValidity();
@@ -588,11 +581,11 @@
             const telepon = document.getElementById('inputTelepon').value;
             const email = document.getElementById('inputEmail').value;
 
-            // Duplication Check (Name + Phone/Email) - Exclude self on edit
+            // Duplication Check (Name + Phone/Email)
             const isDuplicate = contacts.some(c => 
                 c.id !== window.editContactId &&
-                (c.name || c.nama || '').toLowerCase() === nama.toLowerCase() && 
-                ((c.phone || c.telepon) === telepon || (email && c.email === email))
+                (c.name || '').toLowerCase() === nama.toLowerCase() && 
+                ((c.phone) === telepon || (email && c.email === email))
             );
 
             if(isDuplicate) {
@@ -606,56 +599,44 @@
                 return;
             }
 
-            const contactData = {
+            const btn = document.querySelector('button[onclick="saveContact()"]');
+            if(btn) { btn.disabled = true; btn.innerHTML = 'Menyimpan...'; }
+
+            const payload = {
                 sapaan: document.getElementById('inputSapaan').value,
                 name: nama,
-                nama: nama, // dual support
                 company: document.getElementById('inputPerusahaan').value,
-                perusahaan: document.getElementById('inputPerusahaan').value, // dual support
                 phone: telepon,
-                telepon: telepon, // dual support
                 email: email,
                 address: document.getElementById('inputAlamat').value,
-                alamat: document.getElementById('inputAlamat').value, // dual support
                 kota: document.getElementById('inputKota').value,
                 provinsi: document.getElementById('inputProvinsi').value,
-                kodePos: document.getElementById('inputKodePos').value,
+                kode_pos: document.getElementById('inputKodePos').value,
                 npwp: document.getElementById('inputNPWP').value,
                 nik: document.getElementById('inputNIK').value,
                 notes: document.getElementById('inputCatatan').value,
-                catatan: document.getElementById('inputCatatan').value, // dual support
                 type: tipe,
-                tipe: tipe, // dual support
-                status: document.getElementById('inputStatus').checked,
+                status: document.getElementById('inputStatus').checked ? 'ACTIVE' : 'INACTIVE',
                 termin: document.getElementById('inputTermin').value,
                 pajak: document.getElementById('inputPajak').value,
-                mataUang: document.getElementById('inputMataUang').value,
-                arCode: document.getElementById('inputAkunAR').value,
-                apCode: document.getElementById('inputAkunAP').value
+                mata_uang: document.getElementById('inputMataUang').value,
+                ar_code: document.getElementById('inputAkunAR').value,
+                ap_code: document.getElementById('inputAkunAP').value
             };
 
+            let res;
             if (window.editContactId) {
-                // Edit mode
-                const idx = contacts.findIndex(c => c.id === window.editContactId);
-                if (idx !== -1) {
-                    contactData.id = window.editContactId;
-                    contactData.arBalance = contacts[idx].arBalance || contacts[idx].ar || 0;
-                    contactData.ar = contacts[idx].ar || 0;
-                    contactData.apBalance = contacts[idx].apBalance || contacts[idx].ap || 0;
-                    contactData.ap = contacts[idx].ap || 0;
-                    contacts[idx] = contactData;
-                }
+                res = await updateRecord('akt_contacts', window.editContactId, payload);
             } else {
-                // Add mode
-                contactData.id = 'CON_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4);
-                contactData.arBalance = 0;
-                contactData.ar = 0;
-                contactData.apBalance = 0;
-                contactData.ap = 0;
-                contacts.push(contactData);
+                res = await insertRecord('akt_contacts', payload);
             }
 
-            localStorage.setItem(scopedKey, JSON.stringify(contacts));
+            if (btn) { btn.disabled = false; btn.innerHTML = `<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Simpan Kontak`; }
+
+            if (res.error) {
+                Swal.fire('Gagal', res.error.message, 'error');
+                return;
+            }
 
             Swal.fire({
                 icon: 'success',
@@ -666,20 +647,21 @@
             });
 
             closeModal();
-            renderTable();
+            await renderTable();
         }
 
-        // Pemicu dari auto-renderer di auth.js
-        window.renderTable = function() {
-            renderTable();
+        window.renderTable = async function() {
+            await renderTable();
         };
 
-        // Init
         document.addEventListener('DOMContentLoaded', () => {
-            renderTable();
+            setTimeout(() => {
+                renderTable();
+            }, 500);
         });
 
     </script>
+
     <script src='../js/theme.js'></script>
 </body>
 </html>

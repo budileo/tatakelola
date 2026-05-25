@@ -266,3 +266,17 @@ CREATE POLICY "Allow CRUD own invoices" ON public.akt_invoices
 
 CREATE INDEX IF NOT EXISTS idx_akt_invoices_no ON public.akt_invoices(invoice_no);
 CREATE INDEX IF NOT EXISTS idx_akt_invoices_date ON public.akt_invoices(date);
+
+-- ============================================================
+-- 10. Tambahan Kolom Master Kontak (akt_contacts)
+-- ============================================================
+ALTER TABLE public.akt_contacts 
+ADD COLUMN IF NOT EXISTS sapaan VARCHAR(50),
+ADD COLUMN IF NOT EXISTS kota VARCHAR(100),
+ADD COLUMN IF NOT EXISTS provinsi VARCHAR(100),
+ADD COLUMN IF NOT EXISTS kode_pos VARCHAR(20),
+ADD COLUMN IF NOT EXISTS termin VARCHAR(50) DEFAULT 'Cash',
+ADD COLUMN IF NOT EXISTS pajak VARCHAR(50) DEFAULT 'Non PPN',
+ADD COLUMN IF NOT EXISTS mata_uang VARCHAR(10) DEFAULT 'IDR',
+ADD COLUMN IF NOT EXISTS ar_code VARCHAR(100) DEFAULT '1102 - Piutang Usaha IDR',
+ADD COLUMN IF NOT EXISTS ap_code VARCHAR(100) DEFAULT '2101 - Hutang Usaha IDR';
