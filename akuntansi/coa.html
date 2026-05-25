@@ -137,14 +137,31 @@
     <script src="../js/theme.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (!window.VittaCOA) return;
-            
             const tbody = document.getElementById('coaTbody');
             const searchInput = document.querySelector('input[placeholder="Cari Kode atau Nama Akun..."]');
             let activeGroupFilter = 'all';
             
-            function renderCOA(filter = '') {
-                const accounts = window.VittaCOA.getAccounts().sort((a, b) => a.code.localeCompare(b.code));
+            async function fetchCOA() {
+                const { data, error } = await readRecords('akt_coa_accounts', {}, { order: { column: 'code', ascending: true } });
+                if (error) {
+                    console.error("Gagal mengambil COA:", error);
+                    return [];
+                }
+                return data || [];
+            }
+
+            async function loadAndRenderCOA(filter = '') {
+                const dbAccounts = await fetchCOA();
+                const accounts = dbAccounts.map(a => ({
+                    id: a.id,
+                    name: a.name,
+                    code: a.code,
+                    category: a.category,
+                    group: a.group,
+                    is_system: a.is_system,
+                    is_active: a.is_active,
+                    balance: a.balance
+                }));
                 
                 // Filter by category group first
                 let filteredAccounts = accounts;
@@ -197,7 +214,10 @@
                         const statusBadge = a.is_active 
                             ? `<span class="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs">Aktif</span>`
                             : `<span class="bg-gray-500/10 text-gray-400 px-2 py-1 rounded text-xs">Nonaktif</span>`;
-                        const hasTx = window.VittaCOA.hasTransactions ? window.VittaCOA.hasTransactions(a.code) : false;
+                        
+                        // Fallback check transactions securely
+                        const hasTx = window.VittaCOA && window.VittaCOA.hasTransactions ? window.VittaCOA.hasTransactions(a.code) : false;
+                        
                         const actionButtons = a.is_system 
                             ? `<button class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1">Sistem</button>`
                             : `
@@ -225,15 +245,17 @@
 
             function populateCategories() {
                 const select = document.getElementById('coaCategory');
-                const categories = window.VittaCOA.getCategories();
+                const categories = window.VittaCOA && window.VittaCOA.getCategories ? window.VittaCOA.getCategories() : [
+                    'Kas & Bank', 'Akun Piutang', 'Persediaan', 'Aktiva Lancar Lainnya', 'Aktiva Tetap', 'Depresiasi & Amortisasi', 'Aktiva Lainnya',
+                    'Akun Hutang', 'Kewajiban Lancar Lainnya', 'Kewajiban Jangka Panjang',
+                    'Ekuitas', 'Pendapatan', 'Harga Pokok Penjualan', 'Beban', 'Pendapatan Lainnya', 'Beban Lainnya'
+                ].sort();
                 select.innerHTML = '<option value="">-- Pilih Kategori --</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
             }
             populateCategories();
 
-            renderCOA();
-
             // Ekspos ke global agar sinkronisasi latar belakang bisa memicu render ulang
-            window.renderTable = () => renderCOA(searchInput ? searchInput.value : '');
+            window.renderTable = () => loadAndRenderCOA(searchInput ? searchInput.value : '');
 
             window.openModalAdd = function() {
                 document.getElementById('coaForm').reset();
@@ -245,8 +267,9 @@
                 document.getElementById('coaModal').classList.remove('hidden');
             };
 
-            window.openModalEdit = function(id) {
-                const acc = window.VittaCOA.getAccountById(id);
+            window.openModalEdit = async function(id) {
+                const dbAccounts = await fetchCOA();
+                const acc = dbAccounts.find(a => a.id === id);
                 if (!acc) return;
                 
                 document.getElementById('coaForm').reset();
@@ -256,7 +279,7 @@
                 document.getElementById('coaCode').value = acc.code;
                 document.getElementById('coaCategory').value = acc.category;
                 
-                const hasTx = window.VittaCOA.hasTransactions ? window.VittaCOA.hasTransactions(acc.code) : false;
+                const hasTx = window.VittaCOA && window.VittaCOA.hasTransactions ? window.VittaCOA.hasTransactions(acc.code) : false;
                 if (hasTx) {
                     document.getElementById('coaCode').readOnly = true;
                     document.getElementById('coaCodeHelp').classList.remove('hidden');
@@ -272,38 +295,48 @@
                 document.getElementById('coaModal').classList.add('hidden');
             };
 
-            window.handleSave = function(e) {
+            window.handleSave = async function(e) {
                 e.preventDefault();
                 const id = document.getElementById('coaId').value;
+                const category = document.getElementById('coaCategory').value;
+                
+                // Tentukan group dari category secara aman
+                const CATEGORY_GROUPS = window.VittaCOA && window.VittaCOA.CATEGORY_GROUPS ? window.VittaCOA.CATEGORY_GROUPS : {
+                    'Kas & Bank': '1 - Aset', 'Akun Piutang': '1 - Aset', 'Persediaan': '1 - Aset', 'Aktiva Lancar Lainnya': '1 - Aset',
+                    'Aktiva Tetap': '1 - Aset', 'Depresiasi & Amortisasi': '1 - Aset', 'Aktiva Lainnya': '1 - Aset',
+                    'Akun Hutang': '2 - Kewajiban', 'Kewajiban Lancar Lainnya': '2 - Kewajiban', 'Kewajiban Jangka Panjang': '2 - Kewajiban',
+                    'Ekuitas': '3 - Ekuitas', 'Pendapatan': '4 - Pendapatan', 'Harga Pokok Penjualan': '5 - HPP', 'Beban': '6 - Beban',
+                    'Pendapatan Lainnya': '7 - Pendapatan Lainnya', 'Beban Lainnya': '8 - Beban Lainnya'
+                };
+
                 const data = {
                     name: document.getElementById('coaName').value,
                     code: document.getElementById('coaCode').value,
-                    category: document.getElementById('coaCategory').value
+                    category: category,
+                    group: CATEGORY_GROUPS[category] || 'Lainnya'
                 };
 
                 let res;
                 if (id) {
-                    res = window.VittaCOA.updateAccount(id, data);
+                    res = await updateRecord('akt_coa_accounts', id, data);
                 } else {
-                    res = window.VittaCOA.addAccount(data);
+                    res = await insertRecord('akt_coa_accounts', data);
                 }
 
-                if (res.success) {
+                if (res && res.error) {
+                    Swal.fire({icon: 'error', title: 'Gagal', text: res.error.message, background: '#1f2937', color: '#fff'});
+                } else {
                     Swal.fire({icon: 'success', title: 'Berhasil', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
                     closeModal();
-                    renderCOA(searchInput ? searchInput.value : '');
-                } else {
-                    Swal.fire({icon: 'error', title: 'Gagal', text: res.error, background: '#1f2937', color: '#fff'});
+                    await loadAndRenderCOA(searchInput ? searchInput.value : '');
+                    if (window.pullCloudData) window.pullCloudData(); // Trigger sync for other modules
                 }
             };
 
             window.handleDelete = function(id) {
-                const acc = window.VittaCOA.getAccountById(id);
-                if (!acc) return;
-                
                 Swal.fire({
                     title: 'Hapus Akun?',
-                    text: \`Yakin ingin menghapus akun \${acc.name}?\`,
+                    text: `Yakin ingin menghapus akun ini secara permanen?`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#ef4444',
@@ -312,14 +345,15 @@
                     cancelButtonText: 'Batal',
                     background: '#1f2937',
                     color: '#fff'
-                }).then((result) => {
+                }).then(async (result) => {
                     if (result.isConfirmed) {
-                        const res = window.VittaCOA.deleteAccount(id);
-                        if (res.success) {
-                            Swal.fire({icon: 'success', title: 'Terhapus', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
-                            renderCOA(searchInput ? searchInput.value : '');
+                        const res = await deleteRecord('akt_coa_accounts', id);
+                        if (res && res.error) {
+                            Swal.fire({icon: 'error', title: 'Gagal', text: res.error.message, background: '#1f2937', color: '#fff'});
                         } else {
-                            Swal.fire({icon: 'error', title: 'Gagal', text: res.error, background: '#1f2937', color: '#fff'});
+                            Swal.fire({icon: 'success', title: 'Terhapus', background: '#1f2937', color: '#fff', timer: 1500, showConfirmButton: false});
+                            await loadAndRenderCOA(searchInput ? searchInput.value : '');
+                            if (window.pullCloudData) window.pullCloudData(); // Trigger sync for other modules
                         }
                     }
                 });
@@ -328,7 +362,7 @@
             // Search listener
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
-                    renderCOA(e.target.value);
+                    loadAndRenderCOA(e.target.value);
                 });
             }
 
@@ -344,9 +378,14 @@
                     btn.classList.add('text-blue-400', 'border-b-2', 'border-blue-500');
                     
                     activeGroupFilter = btn.dataset.group;
-                    renderCOA(searchInput ? searchInput.value : '');
+                    loadAndRenderCOA(searchInput ? searchInput.value : '');
                 });
             });
+
+            // Initial load
+            setTimeout(() => {
+                loadAndRenderCOA();
+            }, 500);
         });
     </script>
 </body>
