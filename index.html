@@ -143,7 +143,7 @@
 
     <script src="js/auth.js"></script>
     <script>
-        function initPortal() {
+        async function initPortal() {
             const user = window.VITTA_USER;
             if (!user) return;
 
@@ -153,15 +153,31 @@
             const portalGrid = document.getElementById('portalGrid');
             const deptCardsContainer = document.getElementById('deptCards');
 
-            // Set greeting di selector (gunakan nama lengkap dari Supabase)
             const displayName = user.full_name || user.username || user.email || 'User Pemilik';
             document.getElementById('deptSelectorGreeting').innerText = `Selamat Datang, ${displayName} (${user.role})`;
 
-            // Ambil info departemen
-            const accessibleDepts = window.getUserDepartments ? window.getUserDepartments() : [];
-            const activeDept = window.getActiveDept ? window.getActiveDept() : null;
+            // Ambil semua departemen dari Supabase
+            let accessibleDepts = [];
+            if (window.supabaseClient) {
+                if (user.role === 'OWNER') {
+                    const { data } = await window.supabaseClient.from('akt_departments').select('*').eq('user_id', user.id);
+                    accessibleDepts = data || [];
+                } else {
+                    if (window.VITTA_PROFILE && window.VITTA_PROFILE.department_id) {
+                        const { data } = await window.supabaseClient.from('akt_departments').select('*').eq('id', window.VITTA_PROFILE.department_id);
+                        accessibleDepts = data || [];
+                    }
+                }
+                // Simpan ke window untuk dipakai saat diklik
+                window.ACCESSIBLE_DEPTS = accessibleDepts;
+            }
 
-            if (!activeDept) {
+            // Cek state apakah user sudah memilih di sesi ini
+            const isSelectedThisSession = sessionStorage.getItem('index_dept_selected') === 'true';
+            let activeDept = JSON.parse(localStorage.getItem('vitta_active_dept') || 'null');
+
+            // Selalu tampilkan pemilih departemen jika belum memilih di sesi ini (atau klik Ganti)
+            if (!activeDept || !isSelectedThisSession) {
                 // TAMPILKAN PEMILIHAN DEPARTEMEN
                 deptSelector.classList.remove('hidden');
                 mainHeader.classList.add('hidden');
@@ -184,7 +200,7 @@
                     `).join('');
                 }
             } else {
-                // TAMPILKAN MODUL UTAMA (Departemen sudah dipilih)
+                // TAMPILKAN MODUL UTAMA
                 deptSelector.classList.add('hidden');
                 mainHeader.classList.remove('hidden');
                 portalGrid.classList.remove('hidden');
@@ -204,6 +220,7 @@
                 const cards = document.querySelectorAll('.portal-card');
                 let index = 0;
                 cards.forEach(card => {
+                    card.classList.add('hidden'); // Reset
                     const module = card.getAttribute('data-module');
                     if (userPermissions[module]) {
                         setTimeout(() => {
@@ -219,25 +236,30 @@
         // Jalankan inisialisasi saat event kustom Supabase SaaS siap
         window.addEventListener('vitta-saas-ready', initPortal);
 
-        // Jalankan langsung jika sudah siap (misalnya saat reload lambat)
-        if (window.VITTA_USER) {
+        if (window.VITTA_USER && window.supabaseClient) {
             initPortal();
         }
 
-        // Dipanggil saat kartu departemen diklik
-        window.selectDepartment = function(deptId) {
-            const depts = window.getUserDepartments();
+        window.selectDepartment = async function(deptId) {
+            const depts = window.ACCESSIBLE_DEPTS || [];
             const selected = depts.find(d => d.id === deptId);
             if (selected) {
-                window.setActiveDept(selected);
-                // Reload halaman untuk merender tampilan utama
+                // Update profile di DB
+                if (window.supabaseClient && window.VITTA_USER) {
+                    await window.supabaseClient
+                        .from('akt_user_profiles')
+                        .update({ department_id: deptId })
+                        .eq('id', window.VITTA_USER.id);
+                }
+                
+                localStorage.setItem('vitta_active_dept', JSON.stringify(selected));
+                sessionStorage.setItem('index_dept_selected', 'true'); // Simpan status sesi
                 window.location.reload();
             }
         };
 
-        // Dipanggil dari tombol "Ganti Departemen"
         window.switchDept = function() {
-            localStorage.removeItem('vitta_active_dept');
+            sessionStorage.removeItem('index_dept_selected');
             window.location.reload();
         };
 
