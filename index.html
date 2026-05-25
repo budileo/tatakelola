@@ -260,7 +260,14 @@
 
         window.switchDept = function() {
             sessionStorage.removeItem('index_dept_selected');
-            window.location.reload();
+            
+            // Langsung ubah UI ke mode pemilihan tanpa reload
+            document.getElementById('deptSelector').classList.remove('hidden');
+            document.getElementById('mainHeader').classList.add('hidden');
+            document.getElementById('portalGrid').classList.add('hidden');
+            
+            // Panggil ulang render untuk memastikan data up-to-date
+            initPortal();
         };
 
         function handleLogout() {
